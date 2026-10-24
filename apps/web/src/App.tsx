@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next"
 import { Toaster } from "@/components/ui/sonner"
 import { toast } from "sonner"
 import appIcon from "@/assets/web/icon.webp"
+import { PROJECT_URL } from "@/lib/project"
+import { GithubMark } from "@/components/github-mark"
 import { Hint } from "@/components/hint"
 import { OsIcon } from "@/components/os-icon"
 import { Turnstile } from "@/components/turnstile"
@@ -631,7 +633,7 @@ function LoginScreen({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <main className="grid min-h-dvh place-items-center bg-background p-6">
+    <AuthShell>
       <Card className="w-full max-w-sm">
         <CardHeader>
           {/* One line, centred: the mark reads as part of the name, not as a separate
@@ -692,6 +694,31 @@ function LoginScreen({ onDone }: { onDone: () => void }) {
           </form>
         </CardContent>
       </Card>
+    </AuthShell>
+  )
+}
+
+/**
+ * Both auth screens share one frame: the card, then a quiet link to the source.
+ *
+ * The link sits under the card rather than inside it so the form stays the only
+ * thing in the panel; a footer line is enough for "where did this come from".
+ */
+function AuthShell({ children }: { children: React.ReactNode }) {
+  return (
+    <main className="grid min-h-dvh place-items-center bg-background p-6">
+      <div className="flex w-full max-w-sm flex-col items-center gap-5">
+        {children}
+        <a
+          href={PROJECT_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-1.5 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <GithubMark className="size-[14px]" />
+          GitHub
+        </a>
+      </div>
     </main>
   )
 }
@@ -734,7 +761,7 @@ function SetupScreen({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <main className="grid min-h-dvh place-items-center bg-background p-6">
+    <AuthShell>
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>{t("auth.setupTitle")}</CardTitle>
@@ -785,6 +812,6 @@ function SetupScreen({ onDone }: { onDone: () => void }) {
           </form>
         </CardContent>
       </Card>
-    </main>
+    </AuthShell>
   )
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Bot, Contrast, Eye, Network, Palette, Settings, ShieldCheck, X, Zap } from "lucide-react"
+import { Bot, Contrast, Eye, Info, Network, Palette, Settings, ShieldCheck, X, Zap } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
 import { Check, ChevronDown, Circle, Lock, RefreshCw } from "lucide-react"
@@ -17,6 +17,9 @@ import { Separator } from "@/components/ui/separator"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import appIcon from "@/assets/web/icon.webp"
+import { GithubMark } from "@/components/github-mark"
+import { PROJECT_URL, PROJECT_VERSION } from "@/lib/project"
 import { formatTokenCount, parseTokenCount } from "@/lib/tokens"
 import { api, ApiError, listAiModels, type Group, type Permission, type ReasoningEffort as AiEffort } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -85,8 +88,6 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
       setModel(settings.aiProvider.model)
       setContextWindow(formatTokenCount(settings.aiProvider.params.contextWindow))
       setMaxOutput(formatTokenCount(settings.aiProvider.params.maxOutput))
-      // Nothing configured yet: open the card, or the empty header is a dead end.
-      setParamsOpen(settings.aiProvider.model.trim().length === 0)
       setGateOn(settings.turnstile.enabled)
       setGateSiteKey(settings.turnstile.siteKey)
       setGateHasSecret(settings.turnstile.hasSecret)
@@ -283,6 +284,10 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
               <ShieldCheck className="size-[18px]" aria-hidden="true" />
               {t("settings.sections.account")}
             </TabsTrigger>
+            <TabsTrigger value="about" className={TAB}>
+              <Info className="size-[18px]" aria-hidden="true" />
+              {t("settings.sections.about")}
+            </TabsTrigger>
           </TabsList>
 
           <div className="min-h-0 flex-1 overflow-y-auto p-6">
@@ -474,8 +479,9 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                       aria-expanded={paramsOpen}
                       className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
                     >
-                      <span className="min-w-0 flex-1 truncate font-mono text-[12px]">
-                        {model || t("settings.providerModel")}
+                      <span className="shrink-0 text-[12.5px] font-medium">{t("settings.modelAdvanced")}</span>
+                      <span className="min-w-0 flex-1 truncate text-right font-mono text-[12px] text-muted-foreground">
+                        {model || t("settings.modelNotSet")}
                       </span>
                       <ChevronDown
                         className={`size-3.5 shrink-0 text-muted-foreground transition-transform ${paramsOpen ? "rotate-180" : ""}`}
@@ -684,6 +690,32 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                   </Button>
                 </FieldGroup>
               </form>
+            </TabsContent>
+
+            <TabsContent value="about" className="flex flex-col gap-3">
+              <h3 className="text-[15px] font-semibold">{t("settings.sections.about")}</h3>
+              <p className="-mt-1 text-[12.5px] text-muted-foreground">{t("settings.aboutHint")}</p>
+
+              <div className="mt-1 flex items-center gap-3 rounded-lg border border-border bg-card p-4">
+                <img src={appIcon} alt="" aria-hidden="true" className="size-10 rounded-[10px]" />
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[14px] font-semibold">{t("app.brand")}</span>
+                  <span className="text-[12px] tabular-nums text-muted-foreground">{PROJECT_VERSION}</span>
+                </div>
+              </div>
+
+              <a
+                href={PROJECT_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-3 rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent"
+              >
+                <GithubMark className="size-[18px] shrink-0" />
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span className="text-[13px] font-medium">{t("settings.repository")}</span>
+                  <span className="truncate text-[12px] text-muted-foreground">{PROJECT_URL}</span>
+                </span>
+              </a>
             </TabsContent>
 
             {error && (
