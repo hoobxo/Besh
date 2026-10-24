@@ -1,0 +1,4 @@
+# Keep the repository LF-only so the same file hashes the same on every platform.
+* text=auto eol=lf
+*.png binary
+*.zip binary

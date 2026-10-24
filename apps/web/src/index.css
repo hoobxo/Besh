@@ -1,0 +1,220 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "./styles/shadcn-tailwind.css";
+@import "@fontsource-variable/geist";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * One easing curve for the whole interface, plus a guard that removes motion entirely
+ * for people who asked their system for less. Durations are written where they are used;
+ * a token nobody read was worse than the literal.
+ */
+:root {
+  --ease-out-soft: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: 'Geist Variable', sans-serif;
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-ok: var(--ok);
+    --color-warn: var(--warn);
+    --color-danger: var(--danger);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+}
+
+:root {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --ok: #047857;
+    --warn: #b45309;
+    --danger: #9f1239;
+    --border: oklch(0.922 0 0);
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    --radius: 0.625rem;
+    /* Composer roles copied from the reference, scoped to the assistant. */
+    --composer-app: #ffffff;
+    --composer-control: #f4f4f5;
+    --composer-control-hover: #e4e4e7;
+    --composer-border: #d4d4d8;
+    --composer-divider: #e4e4e7;
+    --composer-primary: #09090b;
+    --composer-body: #18181b;
+    --composer-secondary: #3f3f46;
+    --composer-muted: #71717a;
+    /* A dark terminal on a light page reads as a hole punched through it, so the
+       light theme draws the terminal as a light surface with dark text. */
+    --terminal-bg: #f4f4f5;
+    --composer-icon: #52525b;
+}
+
+.dark {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --ok: #6ee7b7;
+    --warn: #fcd34d;
+    --danger: #fb7185;
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.556 0 0);
+    --composer-app: #18181b;
+    --composer-control: #26262b;
+    --composer-control-hover: #303036;
+    --composer-border: #333338;
+    --composer-divider: #2e2e33;
+    --composer-primary: #f4f4f5;
+    --composer-body: #f4f4f5;
+    --composer-secondary: #d4d4d8;
+    --composer-muted: #a1a1aa;
+    --terminal-bg: #000000;
+    --composer-icon: #a1a1aa;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+  body {
+    @apply bg-background text-foreground;
+    }
+  html {
+    @apply font-sans;
+    }
+}/* The reference composer is an InputGroup, not two stacked input surfaces. */
+.ai-panel {
+  /* inherit the column: only the composer box should read as a separate surface */
+  background: transparent;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+}
+.ai-composer-footer {
+  flex-shrink: 0;
+  padding: 10px;
+}
+.ai-composer-form { display: flex; flex-direction: column; gap: 8px; }
+.ai-composer-group[data-slot="input-group"] {
+  display: flex; flex-direction: column; width: 100%; height: auto;
+  border: 1px solid var(--composer-border); border-radius: 9.6px;
+  background: var(--composer-control); color: var(--composer-body); box-shadow: none; opacity: 1;
+  transition: border-color 150ms;
+}
+.ai-composer-group[data-slot="input-group"]:focus-within {
+  border-color: var(--composer-muted); box-shadow: none;
+}
+.ai-composer-textarea[data-slot="input-group-control"] {
+  display: block; flex: none; field-sizing: fixed;
+  width: 100%; min-height: 92px; height: 103.75px;
+  padding: 8px 10px; resize: none; border: 0;
+  border-radius: 9.6px 9.6px 0 0;
+  background: transparent; color: var(--composer-primary);
+  font: inherit; font-size: 13.5px; line-height: 1.625;
+  outline: none; box-shadow: none; opacity: 1;
+}
+.ai-composer-textarea::placeholder { color: var(--composer-muted); opacity: 1; }
+.ai-composer-actions[data-slot="input-group-addon"] {
+  display: flex; justify-content: space-between; align-items: center;
+  width: 100%; height: 42px; gap: 8px; padding: 2px 10px 8px;
+  color: var(--composer-body);
+}
+/* The buttons sit inside a tooltip trigger, which owns the data-slot attribute, so
+   these rules key off the class alone — the slot name on the element is the trigger's. */
+.ai-composer-attach, .ai-composer-send, .ai-composer-stop {
+  display: grid; place-items: center; flex-shrink: 0;
+  width: 32px; height: 32px; padding: 0; border-radius: 10px;
+  box-shadow: none; opacity: 1;
+}
+.ai-composer-attach {
+  border: 1px solid transparent; background: transparent; color: var(--composer-icon);
+}
+.ai-composer-attach svg { transform: rotate(-45deg); }
+.ai-composer-attach:hover { background: var(--composer-control-hover); color: var(--composer-primary); }
+.ai-composer-send {
+  border: 0; background: var(--composer-primary); color: var(--composer-app);
+}
+.ai-composer-send:hover { background: var(--composer-primary); opacity: .9; }
+/* Running: the same spot turns into a solid red stop, so the state is visible without
+   reading any text. The fill on the glyph makes it read as a button, not an icon. */
+/* A red this deep reads as "stop" in both themes; the theme's danger tint is a
+   pastel in dark mode and looked washed out at this size. */
+.ai-composer-stop {
+  border: 0; border-radius: 999px; background: #e11d48; color: #fff;
+}
+.ai-composer-stop:hover { background: #be123c; opacity: 1; }
+.ai-composer-stop:active { background: #9f1239; }
+.ai-composer-stop svg { width: 14px; height: 14px; }
+.ai-composer-attach svg, .ai-composer-send svg { width: 17px; height: 17px; }
+.ai-attachments { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.ai-attachment-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 28px; padding-inline: 10px;
+  border: 1px solid var(--composer-border); border-radius: 9999px;
+  background: var(--composer-control); color: var(--composer-secondary);
+  font-size: 11.5px; line-height: 1; white-space: nowrap;
+}
+.ai-attachment-chip > svg { width: 14px; height: 14px; flex-shrink: 0; }
+.ai-attachment-remove {
+  display: grid; place-items: center; width: 18px; height: 18px;
+  margin-inline-end: -2px; border-radius: 9999px; color: var(--composer-muted);
+}
+.ai-attachment-remove svg { width: 14px; height: 14px; }
+.ai-attachment-remove:hover { background: var(--composer-control-hover); color: var(--composer-primary); }
+/* the attachment ✕ should read as destructive like every other one */
+.ai-attachment-remove:hover { color: var(--danger); }

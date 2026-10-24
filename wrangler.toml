@@ -1,0 +1,46 @@
+name = "besh"
+main = "apps/worker/src/index.ts"
+
+# Secrets (set with `wrangler secret put`, or .dev.vars locally):
+#   CREDENTIAL_KEY, TICKET_SECRET
+#   CREDENTIAL_KEY is the base64 of a 32-byte AES-256 key; generate it once
+#   and never rotate it without re-sealing, or stored credentials become unreadable.
+compatibility_date = "2026-10-01"
+
+workers_dev = true
+
+# Created with `wrangler d1 create besh`; the id belongs to this project.
+# A fork must replace it with the id its own `wrangler d1 create` returns.
+# Local runs (`--local`) still use their own SQLite file under .wrangler/state.
+[[d1_databases]]
+binding = "DB"
+database_name = "besh"
+database_id = "4ad46d14-f6c0-4ab0-bfb7-c45ea8603928"
+migrations_dir = "db/migrations"
+
+[[durable_objects.bindings]]
+name = "SESSIONS"
+class_name = "SessionOwner"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["SessionOwner"]
+
+# AI attachments: the bytes live here, D1 keeps only the id, name and MIME type.
+# Created with `wrangler r2 bucket create besh`.
+[[r2_buckets]]
+binding = "ATTACHMENTS"
+bucket_name = "besh"
+
+# The worker serves the built SPA itself, so development and production share one
+# origin. A dev proxy would test a topology that never ships.
+[assets]
+directory = "./apps/web/dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = true
+
+# Attachments that no stored turn points at are swept once a day. The sweep only
+# touches objects older than a day, so an upload in flight is never a candidate.
+[triggers]
+crons = ["17 4 * * *"]

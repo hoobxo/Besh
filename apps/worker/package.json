@@ -1,0 +1,11 @@
+{
+  "name": "@besh/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@besh/contracts": "0.0.0",
+    "@besh/ssh-core": "0.0.0"
+  }
+}

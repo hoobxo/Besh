@@ -1,0 +1,11 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><!-- The ?v= suffix is the only way to make a browser drop the icon it already cached for this origin. --><link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48 64x64" href="/favicon.ico?v=2" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2" /><title>Besh</title></head><body>
+    <script>
+      // Applied before paint so a dark system never flashes light while the app loads.
+      try {
+        var choice = localStorage.getItem("besh:theme");
+        var dark = choice === "dark" || (choice !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.classList.toggle("dark", dark);
+        document.documentElement.style.colorScheme = dark ? "dark" : "light";
+      } catch (error) {}
+    </script><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>

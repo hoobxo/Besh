@@ -1,0 +1,33 @@
+node_modules/
+dist/
+.wrangler/
+*.tsbuildinfo
+.dev.vars
+*.log
+.DS_Store
+
+# Local working material, never part of the published repository.
+besh-old/
+references/
+.agents/
+.artifacts/
+.backups/
+skills-lock.json
+opencode.json
+deploy-secrets.txt
+.commitmsg
+.git-commit-msg.txt
+.stub*.log
+.stub.err
+.dev-*.log
+/*.png
+/*.pdf
+
+# Notes and tooling kept on disk but not published: the repository carries the
+# implementation itself.
+/tests/
+/tsconfig.tests.json
+/docs/
+/design/
+/scripts/
+/AGENTS.md
