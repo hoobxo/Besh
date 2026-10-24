@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
-import { ArrowUp, ChevronRight, Copy, Download, Eraser, Eye, File as FileIcon, FilePlus2, Folder, FolderOpen, FolderPlus, Link2, Loader2, Pencil, Plug, RefreshCw, Trash2, Unplug, Upload } from "lucide-react"
+import { ArrowUp, ChevronRight, Copy, Download, Eraser, File as FileIcon, FilePlus2, Folder, FolderOpen, FolderPlus, Link2, Loader2, Pencil, Plug, RefreshCw, Save, Trash2, Unplug, Upload } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,6 +29,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import { formatBytes } from "@/lib/format"
+import { decodeTextFile, encodeTextFile, formatByteLimit, isWritableMode, MAX_EDITABLE_BYTES, sameVersion, type TextFile } from "@/lib/text-file"
 import type { FsReply, SftpEntry } from "@/lib/api"
 
 /**
@@ -51,12 +52,16 @@ export type FsOperation =
   | "upload.end"
   | "upload.abort"
 
+const FileEditor = lazy(() => import("@/views/file-editor").then((module) => ({ default: module.FileEditor })))
+
 /** Chunk size for uploads: base64 grows by a third, and a frame has a size budget. */
 const UPLOAD_CHUNK = 160 * 1024
 /** A download is held in memory on both sides, so it has to stop somewhere. */
 const MAX_DOWNLOAD = 8 * 1024 * 1024
 /** Small enough that one slice always answers, large enough to be quick. */
 const DOWNLOAD_SLICE = 256 * 1024
+/** Previewing decodes the whole buffer, so it stops earlier than a download does. */
+const PREVIEW_LIMIT = 1024 * 1024
 
 export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onReconnect, detached }: {
   request: (
@@ -100,7 +105,11 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
     setBusy(false)
   }, [])
   const isBlocked = useCallback(() => !enabledRef.current || busyRef.current, [])
-  const [preview, setPreview] = useState<{ path: string; text: string } | null>(null)
+  const [edit, setEdit] = useState<EditSession | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [conflict, setConflict] = useState(false)
+  const [discarding, setDiscarding] = useState(false)
+  const dirty = edit !== null && edit.text !== edit.original
   const [menuTarget, setMenuTarget] = useState<SftpEntry | null>(null)
   /** Which modal is open, and what it is about. */
   const [asking, setAsking] = useState<
@@ -229,9 +238,7 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
       const bytes = new Uint8Array(await file.arrayBuffer())
       for (let offset = 0; offset < bytes.length; offset += UPLOAD_CHUNK) {
         const slice = bytes.subarray(offset, Math.min(offset + UPLOAD_CHUNK, bytes.length))
-        let binary = ""
-        for (const byte of slice) binary += String.fromCharCode(byte)
-        await request("upload.chunk", target, { uploadId: begun.uploadId, data: btoa(binary) })
+        await request("upload.chunk", target, { uploadId: begun.uploadId, data: toBase64(slice) })
         setProgress({ name: file.name, sent: Math.min(offset + UPLOAD_CHUNK, bytes.length), total: bytes.length || 1 })
       }
       await request("upload.end", target, { uploadId: begun.uploadId })
@@ -254,27 +261,7 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
       // Fetch in slices: one long request can stall half way and leave nothing.
       const size = entry.size ?? 0
       if (size > MAX_DOWNLOAD) throw new Error(t("files.tooLarge", { limit: "8 MB" }))
-      const pieces: Uint8Array[] = []
-      let offset = 0
-      for (;;) {
-        const reply = await request("read", entry.path, { maxBytes: DOWNLOAD_SLICE, offset }).catch(() => {
-          throw new Error(t("files.downloadStalled", { offset: Math.round(offset / 1024) }))
-        })
-        const binary = atob(reply.data ?? "")
-        if (binary.length === 0) break
-        const chunk = new Uint8Array(binary.length)
-        for (let index = 0; index < binary.length; index += 1) chunk[index] = binary.charCodeAt(index)
-        pieces.push(chunk)
-        offset += chunk.length
-        if (chunk.length < DOWNLOAD_SLICE) break
-        if (offset >= MAX_DOWNLOAD) break
-      }
-      const bytes = new Uint8Array(offset)
-      let at = 0
-      for (const piece of pieces) {
-        bytes.set(piece, at)
-        at += piece.length
-      }
+      const bytes = await readBytes(entry.path, MAX_DOWNLOAD, (offset) => t("files.downloadStalled", { offset }))
       const url = URL.createObjectURL(new Blob([bytes]))
       const anchor = document.createElement("a")
       anchor.href = url
@@ -288,16 +275,73 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
     }
   }
 
-  async function openEntry(entry: SftpEntry) {
+  const blocked = !enabled || busy
+  const parent = path === "/" ? "/" : path.replace(/\/[^/]+$/, "") || "/"
+
+  /** Reads a whole file in slices; `stalled` names where the server went quiet. */
+  async function readBytes(target: string, limit: number, stalled: (offset: number) => string): Promise<Uint8Array<ArrayBuffer>> {
+    const pieces: Uint8Array[] = []
+    let offset = 0
+    for (;;) {
+      const reply = await request("read", target, { maxBytes: DOWNLOAD_SLICE, offset }).catch(() => {
+        throw new Error(stalled(Math.round(offset / 1024)))
+      })
+      const binary = atob(reply.data ?? "")
+      if (binary.length === 0) break
+      const chunk = new Uint8Array(binary.length)
+      for (let index = 0; index < binary.length; index += 1) chunk[index] = binary.charCodeAt(index)
+      pieces.push(chunk)
+      offset += chunk.length
+      if (chunk.length < DOWNLOAD_SLICE || offset >= limit) break
+    }
+    const bytes = new Uint8Array(offset)
+    let at = 0
+    for (const piece of pieces) {
+      bytes.set(piece, at)
+      at += piece.length
+    }
+    return bytes
+  }
+
+  function toBase64(bytes: Uint8Array): string {
+    let binary = ""
+    for (const byte of bytes) binary += String.fromCharCode(byte)
+    return btoa(binary)
+  }
+
+  async function openEditor(entry: SftpEntry) {
     if (isBlocked()) return
     if (entry.kind === "directory") {
       await load(entry.path)
       return
     }
+    const size = entry.size ?? 0
+    if (size > PREVIEW_LIMIT) {
+      toast.error(t("files.editTooLarge", { limit: formatByteLimit(PREVIEW_LIMIT) }))
+      return
+    }
+    // Past the editable ceiling the same frame still opens, just without a cursor.
+    const tooBigToEdit = size > MAX_EDITABLE_BYTES
     if (!beginOperation()) return
     try {
-      const reply = await request("read", entry.path)
-      setPreview({ path: entry.path, text: decodeBase64Text(reply.data ?? "") })
+      const bytes = await readBytes(entry.path, tooBigToEdit ? PREVIEW_LIMIT : MAX_EDITABLE_BYTES, (offset) => t("files.readStalled", { offset }))
+      const decoded = decodeTextFile(bytes)
+      if (!decoded) {
+        toast.error(t("files.editBinary"))
+        return
+      }
+      const fresh = (await request("stat", entry.path)).entry ?? entry
+      setConflict(false)
+      setEdit({
+        path: entry.path,
+        text: decoded.text,
+        original: decoded.text,
+        eol: decoded.eol,
+        size: fresh.size ?? bytes.length,
+        modifiedAt: fresh.modifiedAt ?? null,
+        readOnly: !isWritableMode(fresh.mode ?? null) || tooBigToEdit,
+        readOnlyReason: tooBigToEdit ? "size" : "mode",
+      })
     } catch (reason) {
       toast.error(describeFsError(reason, t, t("files.readFailed")))
     } finally {
@@ -305,8 +349,83 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
     }
   }
 
-  const blocked = !enabled || busy
-  const parent = path === "/" ? "/" : path.replace(/\/[^/]+$/, "") || "/"
+  /** Re-reads the server copy and drops the buffer on top of it. */
+  async function reloadEditor() {
+    if (!edit) return
+    const target = edit.path
+    setConflict(false)
+    try {
+      const bytes = await readBytes(target, MAX_EDITABLE_BYTES, (offset) => t("files.readStalled", { offset }))
+      const decoded = decodeTextFile(bytes)
+      if (!decoded) {
+        toast.error(t("files.editBinary"))
+        return
+      }
+      const fresh = (await request("stat", target)).entry
+      setEdit({
+        path: target,
+        text: decoded.text,
+        original: decoded.text,
+        eol: decoded.eol,
+        size: fresh?.size ?? bytes.length,
+        modifiedAt: fresh?.modifiedAt ?? null,
+        readOnly: edit.readOnly || (fresh ? !isWritableMode(fresh.mode ?? null) : false),
+        readOnlyReason: edit.readOnlyReason,
+      })
+    } catch (reason) {
+      toast.error(describeFsError(reason, t, t("files.readFailed")))
+    }
+  }
+
+  async function saveEditor(force = false) {
+    if (!edit || edit.readOnly || saving) return
+    setSaving(true)
+    try {
+      // mtime has one-second resolution, so this also catches same-size rewrites only
+      // when the second differs; anything else is accepted as the reader's version.
+      if (!force) {
+        const fresh = (await request("stat", edit.path)).entry
+        if (fresh && !sameVersion({ size: edit.size, modifiedAt: edit.modifiedAt }, { size: fresh.size ?? 0, modifiedAt: fresh.modifiedAt ?? null })) {
+          setConflict(true)
+          return
+        }
+      }
+      const bytes = encodeTextFile(edit.text, edit.eol)
+      const begun = await request("upload.begin", edit.path)
+      if (!begun.uploadId) throw new Error(t("files.uploadFailed"))
+      const uploadId = begun.uploadId
+      try {
+        for (let offset = 0; offset < bytes.length; offset += UPLOAD_CHUNK) {
+          const slice = bytes.subarray(offset, Math.min(offset + UPLOAD_CHUNK, bytes.length))
+          await request("upload.chunk", edit.path, { uploadId, data: toBase64(slice) })
+        }
+        await request("upload.end", edit.path, { uploadId })
+      } catch (error) {
+        // The staged temporary file stays server-side until aborted; never leave it behind.
+        void request("upload.abort", edit.path, { uploadId }).catch(() => {})
+        throw error
+      }
+      const fresh = (await request("stat", edit.path)).entry
+      setConflict(false)
+      setEdit({ ...edit, original: edit.text, size: fresh?.size ?? bytes.length, modifiedAt: fresh?.modifiedAt ?? null })
+      toast.success(t("files.saved"))
+      setEntries(await readDirectory(path))
+    } catch (reason) {
+      toast.error(describeFsError(reason, t, t("files.saveFailed")))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function closeEditor() {
+    if (saving) return
+    if (dirty) {
+      setDiscarding(true)
+      return
+    }
+    setConflict(false)
+    setEdit(null)
+  }
 
   const startPathEdit = useCallback(() => {
     setDraft(path)
@@ -365,13 +484,13 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
 
   if (menuTarget) {
     menuGroups.push([
-      <ContextMenuItem key="open" disabled={blocked} onSelect={() => void openEntry(menuTarget)}>
+      <ContextMenuItem key="open" disabled={blocked} onSelect={() => void openEditor(menuTarget)}>
         {menuTarget.kind === "directory" ? (
           <FolderOpen data-icon="inline-start" />
         ) : (
-          <Eye data-icon="inline-start" />
+          <FileIcon data-icon="inline-start" />
         )}
-        {t(menuTarget.kind === "directory" ? "files.open" : "files.preview")}
+        {t("files.open")}
       </ContextMenuItem>,
       <ContextMenuItem key="copyPath" onSelect={() => void copyText(menuTarget.path)}>
         <Copy data-icon="inline-start" />
@@ -673,7 +792,7 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
                     setSelected(entry.path)
                     setMenuTarget(entry)
                   }}
-                  onDoubleClick={() => void openEntry(entry)}
+                  onDoubleClick={() => void openEditor(entry)}
                   className={cn(
                     "cursor-pointer border-b border-border/60 transition-colors duration-150 ease-[var(--ease-out-soft)] hover:bg-muted/60",
                     selected === entry.path && "bg-accent"
@@ -691,7 +810,7 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
                     {entry.kind === "directory" || entry.size === undefined ? "" : formatBytes(entry.size)}
                   </TableCell>
                   <TableCell className="h-[29px] px-3 py-0 text-muted-foreground">
-                    {t(entry.kind === "directory" ? "files.kindDirectory" : entry.kind === "link" ? "files.kindLink" : "files.kindFile")}
+                    {t(entry.kind === "directory" ? "files.kindDirectory" : entry.kind === "symlink" ? "files.kindLink" : "files.kindFile")}
                   </TableCell>
                   <TableCell className="h-[29px] px-3 py-0 text-muted-foreground">{formatDate(entry.modifiedAt)}</TableCell>
                   <TableCell className="h-[29px] px-3 py-0 font-mono text-muted-foreground">{formatMode(entry)}</TableCell>
@@ -751,17 +870,16 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
         }}
       />
 
-      {/*
-        A file is read in its own surface, not in a 160px strip under the table: at that
-        height you see six lines of a config file and `break-all` cuts tokens in half.
-        Lines keep their width here and the box scrolls, which is how people read config.
-      */}
-      <Dialog open={preview !== null} onOpenChange={(open) => !open && setPreview(null)}>
+      <Dialog
+        open={edit !== null}
+        onOpenChange={(open) => {
+          if (!open) closeEditor()
+        }}
+      >
         <DialogContent
           className="flex h-[80vh] flex-col sm:max-w-4xl"
-          // Radix focuses the first control inside, which here is the copy button, and a
-          // tooltip opens on focus — so the label appeared on arrival. Focus the surface
-          // instead; the tooltip then only answers a real hover.
+          // Same reason as the preview: focus the surface, not the save button, so its
+          // tooltip does not open the moment the editor appears.
           tabIndex={-1}
           onOpenAutoFocus={(event) => {
             event.preventDefault()
@@ -769,37 +887,89 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
           }}
         >
           <DialogHeader>
-            <DialogTitle className="pr-16 font-mono text-[13px] font-normal">
-              <span className="block truncate" title={preview?.path ?? ""}>
-                {preview?.path ?? ""}
+            <DialogTitle className="pr-24 font-mono text-[13px] font-normal">
+              <span className="block truncate" title={edit?.path ?? ""}>
+                {edit?.path ?? ""}
               </span>
             </DialogTitle>
-            <DialogDescription className="sr-only">{t("files.preview")}</DialogDescription>
+            <DialogDescription className="text-[11px]">
+              {edit?.readOnly
+                ? t(edit.readOnlyReason === "size" ? "files.editReadOnlySize" : "files.editReadOnly")
+                : t("files.editHint", { eol: edit?.eol.length === 2 ? "CRLF" : "LF" })}
+            </DialogDescription>
           </DialogHeader>
-          <Hint label={t("files.copyContent")}>
+          <Hint label={t("files.save")}>
             <Button
               variant="ghost"
               size="icon-sm"
-              className="absolute top-2 right-10"
-              aria-label={t("files.copyContent")}
-              onClick={() => {
-                if (preview) void copyText(preview.text)
-              }}
+              className={dirty && !edit?.readOnly ? "absolute top-2 right-10 text-primary" : "absolute top-2 right-10"}
+              aria-label={t("files.save")}
+              disabled={!dirty || saving || edit?.readOnly === true}
+              onClick={() => void saveEditor()}
             >
-              <Copy className="size-4" aria-hidden="true" />
+              {saving ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Save className="size-4" aria-hidden="true" />}
             </Button>
           </Hint>
-          <pre className="min-h-0 flex-1 overflow-auto whitespace-pre rounded-[6px] bg-muted/40 p-3 font-mono text-[12px] leading-[1.6]">
-            {preview?.text ?? ""}
-          </pre>
+          {conflict && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-[6px] border border-danger/30 bg-danger/10 px-3 py-2">
+              <span className="text-[12px] text-danger">{t("files.editConflict")}</span>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="xs" onClick={() => void saveEditor(true)}>
+                  {t("files.editOverwrite")}
+                </Button>
+                <Button variant="ghost" size="xs" onClick={() => void reloadEditor()}>
+                  {t("files.editReload")}
+                </Button>
+              </div>
+            </div>
+          )}
+          <div className="min-h-0 flex-1 overflow-hidden rounded-[6px] bg-muted/40">
+            {edit && (
+              <Suspense fallback={<div className="h-full w-full" />}>
+                <FileEditor
+                  path={edit.path}
+                  value={edit.text}
+                  readOnly={edit.readOnly || saving}
+                  onSave={() => void saveEditor()}
+                  onChange={(text) => setEdit((current) => (current === null ? current : { ...current, text }))}
+                />
+              </Suspense>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={discarding}
+        title={t("files.discardTitle")}
+        description={t("files.discardHint")}
+        confirmLabel={t("files.discard")}
+        onOpenChange={setDiscarding}
+        onConfirm={() => {
+          setDiscarding(false)
+          setConflict(false)
+          setEdit(null)
+        }}
+      />
+
     </div>
   )
 }
 
 /** A breadcrumb hop; `null` marks the collapsed middle of a deep path. */
 type Crumb = { label: string; path: string | null }
+
+/** An editor buffer plus the server version it was read from. */
+type EditSession = {
+  path: string
+  text: string
+  original: string
+  eol: TextFile["eol"]
+  size: number
+  modifiedAt: number | null
+  readOnly: boolean
+  readOnlyReason: "mode" | "size"
+}
 
 /** What a failed file operation means, in the reader's language. */
 function describeFsError(reason: unknown, t: (key: string) => string, fallback: string): string {
@@ -938,7 +1108,7 @@ function EntryIcon({ kind, open = false }: { kind: SftpEntry["kind"]; open?: boo
   if (kind === "directory") {
     return open ? <FolderOpen className={className} aria-hidden="true" /> : <Folder className={className} aria-hidden="true" />
   }
-  if (kind === "link") return <Link2 className={className} aria-hidden="true" />
+  if (kind === "symlink") return <Link2 className={className} aria-hidden="true" />
   return <FileIcon className={className} aria-hidden="true" />
 }
 
@@ -952,16 +1122,6 @@ function sortEntries(entries: SftpEntry[]): SftpEntry[] {
   })
 }
 
-function decodeBase64Text(value: string): string {
-  if (value.length === 0) return ""
-  try {
-    const binary = atob(value)
-    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0))
-    return new TextDecoder().decode(bytes)
-  } catch {
-    return ""
-  }
-}
 
 function join(base: string, name: string): string {
   return base.endsWith("/") ? `${base}${name}` : `${base}/${name}`
@@ -977,7 +1137,7 @@ function formatDate(value: number | undefined): string {
 
 function formatMode(entry: SftpEntry): string {
   const mode = entry.mode ?? 0
-  const kind = entry.kind === "directory" ? "d" : entry.kind === "link" ? "l" : "-"
+  const kind = entry.kind === "directory" ? "d" : entry.kind === "symlink" ? "l" : "-"
   const bits = ["r", "w", "x"]
   const flags = [0o400, 0o200, 0o100, 0o040, 0o020, 0o010, 0o004, 0o002, 0o001]
   const letters = flags.map((flag, index) => ((mode & flag) === flag ? bits[index % 3]! : "-")).join("")

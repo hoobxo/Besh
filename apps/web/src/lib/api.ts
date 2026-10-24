@@ -215,7 +215,7 @@ export const api = {
 export type SftpEntry = {
   name: string
   path: string
-  kind: "directory" | "file" | "link"
+  kind: "directory" | "file" | "symlink" | "other"
   size?: number
   mode?: number
   /** Seconds since the epoch, as SFTP v3 reports it. */
@@ -224,6 +224,7 @@ export type SftpEntry = {
 
 export type FsReply = {
   entries?: SftpEntry[]
+  entry?: SftpEntry
   data?: string
   uploadId?: string
   /** What a recursive delete removed, so the result can be stated. */

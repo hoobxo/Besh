@@ -15,7 +15,7 @@ workers_dev = true
 [[d1_databases]]
 binding = "DB"
 database_name = "besh"
-database_id = "4ad46d14-f6c0-4ab0-bfb7-c45ea8603928"
+database_id = "a16dabac-43ed-4546-8047-c52b5bba83cd"
 migrations_dir = "db/migrations"
 
 [[durable_objects.bindings]]
