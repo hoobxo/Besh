@@ -134,7 +134,6 @@ export const api = {
   async settings(): Promise<{
     aiPermission: Permission
     aiConfigured: boolean
-    aiDailyTokenBudget: number
     aiProvider: AiProvider
     turnstile: TurnstileState
   }> {
@@ -143,13 +142,11 @@ export const api = {
 
   saveSettings(input: {
     aiPermission?: Permission
-    aiDailyTokenBudget?: number
     aiProvider?: { baseUrl: string; model: string; apiKey?: string; params?: unknown }
     turnstile?: { enabled?: boolean; siteKey?: string; secret?: string }
   }): Promise<{
     aiPermission: Permission
     aiConfigured: boolean
-    aiDailyTokenBudget: number
     aiProvider: AiProvider
     turnstile: TurnstileState
   }> {
@@ -258,7 +255,7 @@ export type TerminalMessage =
   | { type: "ai.messages"; id: number; entries: Array<{ kind: string; [key: string]: unknown }> }
   | { type: "ai.cleared"; id: number }
   | { type: "ai.canceled"; id: number }
-  | { type: "ai.usage"; conversation: TokenTotals; day: TokenTotals; budget: number }
+  | { type: "ai.usage"; conversation: TokenTotals; day: TokenTotals }
   | {
       type: "ai.conversationList"
       id: number

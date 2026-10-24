@@ -38,7 +38,7 @@ import {
   rejectProposal,
   type Proposal,
 } from "../domain/ai-proposal.ts"
-import { readDailyTokenBudget, readPermission } from "../domain/settings-store.ts"
+import { readPermission } from "../domain/settings-store.ts"
 import { resolveProvider } from "../domain/ai-provider.ts"
 import {
   appendEntry,
@@ -513,13 +513,12 @@ export class SessionOwner implements DurableObject {
    */
   async #sendUsage(socket: WebSocket, conversationId: string, token: ConversationToken): Promise<void> {
     try {
-      const [conversation, day, budget] = await Promise.all([
+      const [conversation, day] = await Promise.all([
         readConversationTotals(this.#env.DB, this.#serverId, conversationId),
         readDayTotals(this.#env.DB),
-        readDailyTokenBudget(this.#env.DB),
       ])
       if (!this.#aiScope.current(token)) return
-      this.#send(socket, { type: "ai.usage", conversation, day, budget })
+      this.#send(socket, { type: "ai.usage", conversation, day })
     } catch {
       // ignore
     }
@@ -764,23 +763,6 @@ export class SessionOwner implements DurableObject {
     if (!provider) {
       this.#send(socket, { type: "ai.error", id, code: "NOT_CONFIGURED", message: "未配置模型服务" })
       return
-    }
-
-    // The budget is read here, on the server, for the same reason the permission is:
-    // a browser that could raise its own ceiling would have none.
-    const dailyBudget = await readDailyTokenBudget(this.#env.DB)
-    if (dailyBudget > 0) {
-      const spentToday = await readDayTotals(this.#env.DB)
-      if (!this.#aiScope.current(token)) return
-      if (spentToday.totalTokens >= dailyBudget) {
-        this.#send(socket, {
-          type: "ai.error",
-          id,
-          code: "BUDGET_EXHAUSTED",
-          message: `今日 token 预算已用尽（${spentToday.totalTokens} / ${dailyBudget}）。可在设置里调高预算，或等 UTC 零点重置。`,
-        })
-        return
-      }
     }
 
     if (this.#openCalls.size > 0) {

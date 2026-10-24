@@ -5,7 +5,7 @@
  * the choice; a PUT is validated against the same list the decision code uses, so
  * an unknown value cannot be stored and later fall back silently.
  */
-import { PERMISSIONS, SettingsError, isPermission, readSettings, writeDailyTokenBudget, writePermission } from "../domain/settings-store.ts"
+import { PERMISSIONS, SettingsError, isPermission, readSettings, writePermission } from "../domain/settings-store.ts"
 import { describeProvider, readProviderConfig, resolveProvider, writeProviderConfig, ProviderError } from "../domain/ai-provider.ts"
 import { describeTurnstile, publicTurnstile, readTurnstileConfig, writeTurnstileConfig, TurnstileError } from "../domain/turnstile.ts"
 import { readCredentialKey } from "../domain/credential-key.ts"
@@ -43,7 +43,6 @@ export async function handlePutSettings(request: Request, env: SettingsEnv): Pro
 
   const parsed = (body ?? {}) as {
     aiPermission?: unknown
-    aiDailyTokenBudget?: unknown
     aiProvider?: { baseUrl?: unknown; model?: unknown; apiKey?: unknown; params?: unknown }
     turnstile?: { enabled?: unknown; siteKey?: unknown; secret?: unknown }
   }
@@ -71,18 +70,6 @@ export async function handlePutSettings(request: Request, env: SettingsEnv): Pro
     }
     try {
       await writePermission(env.DB, parsed.aiPermission)
-    } catch (error) {
-      if (error instanceof SettingsError) return jsonError("INVALID_REQUEST", error.message, 400)
-      throw error
-    }
-  }
-
-  if (parsed.aiDailyTokenBudget !== undefined) {
-    if (typeof parsed.aiDailyTokenBudget !== "number") {
-      return jsonError("INVALID_REQUEST", "aiDailyTokenBudget must be a whole number of tokens", 400)
-    }
-    try {
-      await writeDailyTokenBudget(env.DB, parsed.aiDailyTokenBudget)
     } catch (error) {
       if (error instanceof SettingsError) return jsonError("INVALID_REQUEST", error.message, 400)
       throw error

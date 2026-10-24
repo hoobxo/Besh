@@ -44,7 +44,6 @@ export function isErrorCode(value: unknown): value is ErrorCode {
 
 export const AI_ERROR_CODES = [
   "NOT_CONFIGURED",
-  "BUDGET_EXHAUSTED",
   "ATTACHMENT_MISSING",
   "EXEC_UNCONFIRMED",
 ] as const

@@ -74,9 +74,6 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
   const [error, setError] = useState<string | null>(null)
   const [currentPassword, setCurrentPassword] = useState("")
   const [nextPassword, setNextPassword] = useState("")
-  // Tokens allowed per UTC day across the installation; "0" means no ceiling.
-  const [dailyBudget, setDailyBudget] = useState("0")
-  const [savedBudget, setSavedBudget] = useState("0")
 
   const load = useCallback(async () => {
     try {
@@ -95,8 +92,6 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
       setGateHasSecret(settings.turnstile.hasSecret)
       setReadsImages(settings.aiProvider.params.inputs.image)
       setEffort(settings.aiProvider.params.effort)
-      setDailyBudget(String(settings.aiDailyTokenBudget))
-      setSavedBudget(String(settings.aiDailyTokenBudget))
       setError(null)
     } catch {
       setError(t("settings.loadFailed"))
@@ -184,35 +179,6 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
     } catch {
       setPermission(previous)
       setError(t("settings.saveFailed"))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  /**
-   * Saved on blur, so a half-typed number never becomes a ceiling.
-   *
-   * An empty field means zero: "no budget" is a deliberate choice here, not a typo.
-   */
-  async function saveDailyBudget() {
-    const next = Number(dailyBudget.trim() === "" ? "0" : dailyBudget.trim())
-    if (!Number.isInteger(next) || next < 0) {
-      setDailyBudget(savedBudget)
-      return
-    }
-    // Blur fires on every focus change; only a real edit is worth a request.
-    if (String(next) === savedBudget) {
-      setDailyBudget(savedBudget)
-      return
-    }
-    setBusy(true)
-    try {
-      const saved = await api.saveSettings({ aiDailyTokenBudget: next })
-      setDailyBudget(String(saved.aiDailyTokenBudget))
-      setSavedBudget(String(saved.aiDailyTokenBudget))
-    } catch {
-      setError(t("settings.saveFailed"))
-      void load()
     } finally {
       setBusy(false)
     }
@@ -435,24 +401,6 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                   <ChoiceCard key={option.value} option={option} selected={permission === option.value} />
                 ))}
               </ToggleGroup>
-
-              <Separator className="my-2" />
-
-              <div className="flex flex-col gap-1.5">
-                <FieldLabel htmlFor="ai-daily-budget">{t("settings.aiBudget")}</FieldLabel>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="ai-daily-budget"
-                    inputMode="numeric"
-                    value={dailyBudget}
-                    onChange={(event) => setDailyBudget(event.target.value.replace(/[^0-9]/g, ""))}
-                    onBlur={() => void saveDailyBudget()}
-                    className="h-9 w-[150px] tabular-nums"
-                  />
-                  <span className="text-[12px] text-muted-foreground">{t("settings.aiBudgetUnit")}</span>
-                </div>
-                <p className="text-[11.5px] text-muted-foreground">{t("settings.aiBudgetHint")}</p>
-              </div>
 
               <Separator className="my-2" />
 

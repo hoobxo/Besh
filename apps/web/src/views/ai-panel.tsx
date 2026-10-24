@@ -53,11 +53,10 @@ export type TokenTotals = {
   requests: number
 }
 
-/** What the session object published: this conversation, today, and the ceiling. */
+/** What the session object published: this conversation and the whole day. */
 export type AiUsage = {
   conversation: TokenTotals
   day: TokenTotals
-  budget: number
 }
 
 export type AiState = {
@@ -429,16 +428,10 @@ export function AiPanel({
 
       {state.usage && state.usage.conversation.requests > 0 && (
         <p className="pb-1 text-center text-[11px] tabular-nums text-muted-foreground">
-          {state.usage.budget > 0
-            ? t("ai.usageBudget", {
-                conversation: state.usage.conversation.totalTokens.toLocaleString(),
-                day: state.usage.day.totalTokens.toLocaleString(),
-                budget: state.usage.budget.toLocaleString(),
-              })
-            : t("ai.usage", {
-                conversation: state.usage.conversation.totalTokens.toLocaleString(),
-                day: state.usage.day.totalTokens.toLocaleString(),
-              })}
+          {t("ai.usage", {
+            conversation: state.usage.conversation.totalTokens.toLocaleString(),
+            day: state.usage.day.totalTokens.toLocaleString(),
+          })}
         </p>
       )}
     </div>
