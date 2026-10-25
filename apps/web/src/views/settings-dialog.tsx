@@ -507,7 +507,12 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                         >
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent
+                          position="popper"
+                          align="start"
+                          sideOffset={4}
+                          className="w-[var(--radix-select-trigger-width)] min-w-0"
+                        >
                           {(["default", "low", "medium", "high", "xhigh", "max"] as const).map((level) => (
                             <SelectItem key={level} value={level}>
                               {t(`settings.effort.${level}`)}
