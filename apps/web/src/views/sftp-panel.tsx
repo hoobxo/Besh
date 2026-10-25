@@ -715,7 +715,7 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
             aria-label={t("files.path")}
             title={t("files.editPath")}
             onDoubleClick={startPathEdit}
-            className="flex h-7 min-w-[120px] max-w-[45%] items-center gap-0.5 overflow-hidden rounded-full border border-border/70 bg-background/60 px-2.5 font-mono text-[11px]"
+            className="flex h-7 w-fit max-w-[45%] items-center gap-0.5 overflow-hidden rounded-full border border-border/70 bg-background/60 px-2.5 font-mono text-[11px]"
           >
             {crumbs.map((crumb, index) => {
               const current = index === crumbs.length - 1
