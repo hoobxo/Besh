@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
-import { ArrowUp, ChevronRight, Copy, Download, Eraser, File as FileIcon, FilePlus2, Folder, FolderOpen, FolderPlus, Link2, Loader2, Pencil, Plug, RefreshCw, Save, Trash2, Unplug, Upload } from "lucide-react"
+import { ArrowUp, ChevronRight, CircleCheck, Copy, Download, Eraser, File as FileIcon, FilePlus2, Folder, FolderOpen, FolderPlus, Link2, Loader2, Pencil, Plug, RefreshCw, RotateCcw, Save, Trash2, Unplug, Upload, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -30,6 +30,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { cn } from "@/lib/utils"
 import { formatBytes } from "@/lib/format"
 import { decodeTextFile, encodeTextFile, formatByteLimit, isWritableMode, MAX_EDITABLE_BYTES, sameVersion, type TextFile } from "@/lib/text-file"
+import { TransferQueue, type TransferItem } from "@/lib/transfer-queue"
 import type { FsReply, SftpEntry } from "@/lib/api"
 
 /**
@@ -56,12 +57,20 @@ const FileEditor = lazy(() => import("@/views/file-editor").then((module) => ({ 
 
 /** Chunk size for uploads: base64 grows by a third, and a frame has a size budget. */
 const UPLOAD_CHUNK = 160 * 1024
-/** A download is held in memory on both sides, so it has to stop somewhere. */
-const MAX_DOWNLOAD = 8 * 1024 * 1024
+/** A transfer is held in memory on both sides, so it has to stop somewhere. */
+const MAX_TRANSFER = 8 * 1024 * 1024
 /** Small enough that one slice always answers, large enough to be quick. */
 const DOWNLOAD_SLICE = 256 * 1024
 /** Previewing decodes the whole buffer, so it stops earlier than a download does. */
 const PREVIEW_LIMIT = 1024 * 1024
+
+/** Decodes the base64 a `read` reply carries back into bytes. */
+function fromBase64(data: string): Uint8Array {
+  const binary = atob(data)
+  const bytes = new Uint8Array(binary.length)
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index)
+  return bytes
+}
 
 export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onReconnect, detached }: {
   request: (
@@ -120,8 +129,88 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
     | null
   >(null)
   const uploadPicker = useRef<HTMLInputElement>(null)
-  /** Bytes in flight, so a slow upload is visibly moving rather than merely busy. */
-  const [progress, setProgress] = useState<{ name: string; sent: number; total: number } | null>(null)
+  /**
+   * Transfers run through a queue that owns its own request stream, so a slow file
+   * no longer freezes browsing and a dropped chunk resumes instead of restarting.
+   */
+  const queueRef = useRef<TransferQueue | null>(null)
+  const [transfers, setTransfers] = useState<TransferItem[]>([])
+  const requestRef = useRef(request)
+  requestRef.current = request
+  if (queueRef.current === null) {
+    queueRef.current = new TransferQueue({
+      beginUpload: async (target) => {
+        const begun = await requestRef.current("upload.begin", target)
+        if (!begun.uploadId) throw new Error("upload.begin returned no id")
+        return begun.uploadId
+      },
+      writeChunk: (target, uploadId, offset, data) =>
+        requestRef.current("upload.chunk", target, { uploadId, data: toBase64(data), offset }).then(() => undefined),
+      endUpload: (target, uploadId) => requestRef.current("upload.end", target, { uploadId }).then(() => undefined),
+      abortUpload: (target, uploadId) => requestRef.current("upload.abort", target, { uploadId }).then(() => undefined),
+      readRange: async (target, offset, length) => {
+        const reply = await requestRef.current("read", target, { maxBytes: length, offset })
+        return fromBase64(reply.data ?? "")
+      },
+    }, { onSettled: (item) => void onTransferSettled(item) })
+  }
+  const queue = queueRef.current
+  useEffect(() => {
+    // The queue mutates its items in place, so the list is copied on every change.
+    const sync = () => setTransfers(queue.items.map((item) => ({ ...item })))
+    sync()
+    return queue.subscribe(sync)
+  }, [queue])
+
+  /** Saves a finished download, and refreshes the listing after an upload lands. */
+  async function onTransferSettled(item: TransferItem) {
+    if (item.status === "failed") {
+      // The queue keeps the raw error, so a server status code still maps to its own text.
+      toast.error(describeFsError(item.reason ?? new Error(item.error ?? ""), t, t(item.direction === "upload" ? "files.uploadFailed" : "files.downloadFailed")))
+      return
+    }
+    if (item.status !== "done") return
+    if (item.direction === "download") {
+      const bytes = TransferQueue.bytes(item)
+      const url = URL.createObjectURL(new Blob([bytes as BlobPart]))
+      const anchor = document.createElement("a")
+      anchor.href = url
+      anchor.download = item.name
+      anchor.click()
+      URL.revokeObjectURL(url)
+      return
+    }
+    if (enabledRef.current) {
+      await readDirectory(path).then(setEntries).catch(() => undefined)
+    }
+  }
+
+  /** Queues the chosen files; each one keeps its place if the link drops mid-way. */
+  async function transferFiles(files: File[]) {
+    if (!enabledRef.current) return
+    const rejected: string[] = []
+    const accepted: { name: string; path: string; bytes: Uint8Array }[] = []
+    for (const file of files) {
+      if (file.size > MAX_TRANSFER) {
+        rejected.push(file.name)
+        continue
+      }
+      accepted.push({ name: file.name, path: join(path, file.name), bytes: new Uint8Array(await file.arrayBuffer()) })
+    }
+    if (rejected.length > 0) toast.error(t("files.tooLarge", { limit: formatByteLimit(MAX_TRANSFER) }))
+    if (accepted.length > 0) queue.addUploads(accepted)
+  }
+
+  /** Queues a download; the bytes arrive in slices and are saved when the last one lands. */
+  function downloadEntry(entry: SftpEntry) {
+    if (!enabledRef.current) return
+    const size = entry.size ?? 0
+    if (size > MAX_TRANSFER) {
+      toast.error(t("files.tooLarge", { limit: formatByteLimit(MAX_TRANSFER) }))
+      return
+    }
+    queue.addDownload({ name: entry.name, path: entry.path, size })
+  }
 
   // Table navigation and tree expansion use the same listing and operation lock.
   // A tree click must not open a second directory request behind the busy overlay.
@@ -222,59 +311,6 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
     }
   }
 
-  async function uploadFile(file: File) {
-    if (file.size > MAX_DOWNLOAD) {
-      toast.error(t("files.tooLarge", { limit: "8 MB" }))
-      return
-    }
-    if (!beginOperation()) return
-    setProgress({ name: file.name, sent: 0, total: file.size || 1 })
-    const target = join(path, file.name)
-    let uploadId: string | undefined
-    try {
-      const begun = await request("upload.begin", target)
-      if (!begun.uploadId) throw new Error(t("files.uploadFailed"))
-      uploadId = begun.uploadId
-      const bytes = new Uint8Array(await file.arrayBuffer())
-      for (let offset = 0; offset < bytes.length; offset += UPLOAD_CHUNK) {
-        const slice = bytes.subarray(offset, Math.min(offset + UPLOAD_CHUNK, bytes.length))
-        await request("upload.chunk", target, { uploadId: begun.uploadId, data: toBase64(slice) })
-        setProgress({ name: file.name, sent: Math.min(offset + UPLOAD_CHUNK, bytes.length), total: bytes.length || 1 })
-      }
-      await request("upload.end", target, { uploadId: begun.uploadId })
-      uploadId = undefined
-      setEntries(await readDirectory(path))
-    } catch (reason) {
-      // Ask the owning connection to discard its temporary file; disconnect also triggers
-      // server cleanup, so a failed abort must not prevent releasing the UI lock.
-      if (uploadId) void request("upload.abort", target, { uploadId }).catch(() => {})
-      toast.error(describeFsError(reason, t, t("files.uploadFailed")))
-    } finally {
-      finishOperation()
-      setProgress(null)
-    }
-  }
-
-  async function downloadEntry(entry: SftpEntry) {
-    if (!beginOperation()) return
-    try {
-      // Fetch in slices: one long request can stall half way and leave nothing.
-      const size = entry.size ?? 0
-      if (size > MAX_DOWNLOAD) throw new Error(t("files.tooLarge", { limit: "8 MB" }))
-      const bytes = await readBytes(entry.path, MAX_DOWNLOAD, (offset) => t("files.downloadStalled", { offset }))
-      const url = URL.createObjectURL(new Blob([bytes]))
-      const anchor = document.createElement("a")
-      anchor.href = url
-      anchor.download = entry.name
-      anchor.click()
-      URL.revokeObjectURL(url)
-    } catch (reason) {
-      toast.error(describeFsError(reason, t, t("files.downloadFailed")))
-    } finally {
-      finishOperation()
-    }
-  }
-
   const blocked = !enabled || busy
   const parent = path === "/" ? "/" : path.replace(/\/[^/]+$/, "") || "/"
 
@@ -286,10 +322,8 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
       const reply = await request("read", target, { maxBytes: DOWNLOAD_SLICE, offset }).catch(() => {
         throw new Error(stalled(Math.round(offset / 1024)))
       })
-      const binary = atob(reply.data ?? "")
-      if (binary.length === 0) break
-      const chunk = new Uint8Array(binary.length)
-      for (let index = 0; index < binary.length; index += 1) chunk[index] = binary.charCodeAt(index)
+      const chunk = fromBase64(reply.data ?? "")
+      if (chunk.length === 0) break
       pieces.push(chunk)
       offset += chunk.length
       if (chunk.length < DOWNLOAD_SLICE || offset >= limit) break
@@ -691,20 +725,55 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
         )}
       </div>
 
-      {progress && (
-        <div className="shrink-0 px-3 py-1.5" role="status" aria-live="polite">
-          <div className="mb-1 flex items-center justify-between gap-2 font-mono text-[10.5px] text-muted-foreground">
-            <span className="truncate">
-              {t("files.uploading", { name: progress.name })}
-            </span>
-            <span className="shrink-0">{Math.round((progress.sent / progress.total) * 100)}%</span>
-          </div>
-          <div className="h-0.5 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-ok transition-[width]"
-              style={{ width: `${Math.min(100, Math.round((progress.sent / progress.total) * 100))}%` }}
-            />
-          </div>
+      {transfers.length > 0 && (
+        <div className="shrink-0 border-b border-border/60 px-3 py-1" role="status" aria-live="polite">
+          <ul className="flex flex-col gap-1">
+            {transfers.map((item) => {
+              const total = item.size || 1
+              const percent = Math.min(100, Math.round((item.transferred / total) * 100))
+              const settled = item.status === "done" || item.status === "failed" || item.status === "canceled"
+              const label = item.status === "running" ? `${percent}%`
+                : item.status === "queued" ? t("files.transferQueued")
+                : item.status === "done" ? t("files.transferDone")
+                : item.status === "failed" ? t("files.transferFailed")
+                : t("files.transferCanceled")
+              return (
+                <li key={item.id} className="flex items-center gap-2 font-mono text-[10.5px]">
+                  {item.direction === "upload" ? <Upload className="size-3 shrink-0 text-muted-foreground" /> : <Download className="size-3 shrink-0 text-muted-foreground" />}
+                  <span className={cn("truncate", item.status === "canceled" && "text-muted-foreground line-through")}>{item.name}</span>
+                  <span className="shrink-0 text-muted-foreground">
+                    {formatBytes(item.transferred)} / {formatBytes(item.size)}
+                  </span>
+                  <span className={cn("shrink-0 tabular-nums", item.status === "failed" ? "text-danger" : item.status === "done" ? "text-ok" : "text-muted-foreground")}>
+                    {label}
+                  </span>
+                  <span className="ml-auto flex shrink-0 items-center gap-0.5">
+                    {(item.status === "failed" || item.status === "canceled") && (
+                      <Hint label={t("files.transferRetry")}>
+                        <Button size="icon-sm" variant="ghost" aria-label={t("files.transferRetry")} onClick={() => queue.retry(item.id)}>
+                          <RotateCcw />
+                        </Button>
+                      </Hint>
+                    )}
+                    {!settled && (
+                      <Hint label={t("files.transferCancel")}>
+                        <Button size="icon-sm" variant="ghost" aria-label={t("files.transferCancel")} onClick={() => void queue.cancel(item.id)}>
+                          <X />
+                        </Button>
+                      </Hint>
+                    )}
+                    {settled && item.status !== "failed" && (
+                      <Hint label={t("files.transferClear")}>
+                        <Button size="icon-sm" variant="ghost" aria-label={t("files.transferClear")} onClick={() => queue.clearFinished()}>
+                          <CircleCheck />
+                        </Button>
+                      </Hint>
+                    )}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
         </div>
       )}
 
@@ -862,10 +931,11 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
       <input
         ref={uploadPicker}
         type="file"
+        multiple
         hidden
         onChange={(event) => {
-          const file = event.target.files?.[0]
-          if (file) void uploadFile(file)
+          const files = Array.from(event.target.files ?? [])
+          if (files.length > 0) void transferFiles(files)
           if (uploadPicker.current) uploadPicker.current.value = ""
         }}
       />

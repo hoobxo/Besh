@@ -254,19 +254,41 @@ export class SftpService {
     return session
   }
 
-  /** Per-upload serialization also makes abort safe against an in-flight chunk. */
+  /**
+   * Append at the staged file's current end.
+   *
+   * A failed chunk leaves the session open on purpose: the staged file is still
+   * there, and `writeAt` lets the caller retry the same range instead of throwing
+   * away everything it already sent.
+   */
   async writeChunk(session: WriteSession, data: Uint8Array): Promise<void> {
+    await this.#writeAt(session, session.offset, data)
+  }
+
+  /**
+   * Write at an explicit position, so a retried chunk overwrites the range it was
+   * already given instead of appending a second copy of it.
+   */
+  async writeAt(session: WriteSession, offset: number, data: Uint8Array): Promise<void> {
+    if (!Number.isInteger(offset) || offset < 0) throw new SftpError("Write offset must be a non-negative integer")
+    await this.#writeAt(session, offset, data)
+  }
+
+  async #writeAt(session: WriteSession, offset: number, data: Uint8Array): Promise<void> {
     await this.#writeExclusive(session, async () => {
       if (session.state !== "open") throw new SftpError(`Upload is ${session.state}`)
+      let written = 0
       try {
-        for (let written = 0; written < data.length;) {
+        for (; written < data.length;) {
           const slice = data.subarray(written, Math.min(written + 32 * 1024, data.length))
-          await this.#guard(() => this.#client.writeFile(session.handle, session.offset, slice))
-          session.offset += slice.length
+          await this.#guard(() => this.#client.writeFile(session.handle, offset + written, slice))
           written += slice.length
+          session.offset = offset + written
         }
       } catch (error) {
-        session.state = "failed"
+        // Keep the highest byte the server acknowledged, so an append-style retry
+        // does not write over data that did land.
+        session.offset = Math.max(session.offset, offset + written)
         throw error
       }
     })

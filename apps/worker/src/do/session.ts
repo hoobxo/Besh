@@ -636,7 +636,10 @@ export class SessionOwner implements DurableObject {
           const session = message.uploadId ? this.#uploads.get(message.uploadId) : undefined
           if (!session) throw new SftpError("上传会话已失效，请重新上传")
           this.#touchUpload(message.uploadId!)
-          await sftp.writeChunk(session, fromBase64(message.data ?? ""))
+          // An explicit offset makes a retried chunk idempotent: it overwrites the
+          // range instead of appending a second copy of bytes that already landed.
+          const at = Number.isInteger(message.offset) && (message.offset ?? -1) >= 0 ? message.offset! : session.offset
+          await sftp.writeAt(session, at, fromBase64(message.data ?? ""))
           this.#reply(socket, id, { ok: true })
           return
         }
@@ -670,7 +673,10 @@ export class SessionOwner implements DurableObject {
         }
       }
     } catch (error) {
-      if (message.uploadId) await this.#abortUpload(message.uploadId)
+      // A failed chunk keeps its staged file: the browser retries that range and
+      // continues from where it stopped. Everything else gives the staging area up
+      // immediately, and the idle timer reaps a chunk whose retries never arrive.
+      if (message.uploadId && op !== "upload.chunk") await this.#abortUpload(message.uploadId)
       const text =
         error instanceof SftpError || error instanceof SshConnectionError
           ? error.message
