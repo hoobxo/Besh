@@ -618,6 +618,20 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
 
                   <p className="text-[11.5px] text-muted-foreground">{t("settings.modelHints")}</p>
 
+                  <div className="flex items-center justify-end gap-2">
+                    {baseUrl.trim().length === 0 && (
+                      <span className="text-[11.5px] text-muted-foreground">{t("settings.providerSaveHint")}</span>
+                    )}
+                    <Button
+                      type="submit"
+                      variant="outline"
+                      className="h-9 px-3.5 text-[12.5px]"
+                      disabled={busy || baseUrl.trim().length === 0}
+                    >
+                      {t("settings.providerSave")}
+                    </Button>
+                  </div>
+
                       </div>
                     )}
                   </div>
