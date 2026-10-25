@@ -36,7 +36,9 @@ export function TransferCard({ queue }: { queue: TransferQueue }) {
   }, [queue, settled])
 
   return (
-    <div className="flex w-[320px] flex-col gap-2 p-3">
+    // A custom toast is deliberately left unstyled by sonner, so the surface is ours:
+    // without it the card would be transparent over whatever is behind it.
+    <div className="flex w-[320px] flex-col gap-2 rounded-[var(--radius)] border border-border bg-popover p-3 text-popover-foreground shadow-lg">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-medium">{t("files.transfers")}</span>
         <Button
