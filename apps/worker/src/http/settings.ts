@@ -6,7 +6,7 @@
  * an unknown value cannot be stored and later fall back silently.
  */
 import { PERMISSIONS, SettingsError, isPermission, readSettings, writePermission } from "../domain/settings-store.ts"
-import { describeProvider, readProviderConfig, resolveProvider, writeProviderConfig, ProviderError } from "../domain/ai-provider.ts"
+import { describeProvider, readProviderConfig, resolveProviderEndpoint, writeProviderConfig, ProviderError } from "../domain/ai-provider.ts"
 import { describeTurnstile, publicTurnstile, readTurnstileConfig, writeTurnstileConfig, TurnstileError } from "../domain/turnstile.ts"
 import { readCredentialKey } from "../domain/credential-key.ts"
 import { jsonError } from "./auth.ts"
@@ -107,7 +107,7 @@ export async function handleListModels(env: SettingsEnv): Promise<Response> {
   const key = readCredentialKey(env)
   if (!key) return jsonError("INTERNAL", "Credential key is not configured", 500)
 
-  const provider = await resolveProvider(env.DB, key)
+  const provider = await resolveProviderEndpoint(env.DB, key)
   if (!provider) return jsonError("INVALID_REQUEST", "Model provider is not configured", 400)
 
   let response: Response

@@ -89,6 +89,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
   // someone wants to change them.
   const [paramsOpen, setParamsOpen] = useState(false)
   const [apiKey, setApiKey] = useState("")
+  const [hasKey, setHasKey] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [currentPassword, setCurrentPassword] = useState("")
@@ -101,6 +102,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
       setPermission(settings.aiPermission)
       setConfigured(settings.aiConfigured)
       setProviderReady(settings.aiProvider.configured)
+      setHasKey(settings.aiProvider.hasKey)
       setBaseUrl(settings.aiProvider.baseUrl)
       setModel(settings.aiProvider.model)
       setContextWindow(formatTokenCount(settings.aiProvider.params.contextWindow))
@@ -169,6 +171,9 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
         },
       })
       setConfigured(saved.aiProvider.configured)
+      setProviderReady(saved.aiProvider.configured)
+      setHasKey(saved.aiProvider.hasKey)
+      setModels(null)
       setBaseUrl(saved.aiProvider.baseUrl)
       setModel(saved.aiProvider.model)
       setReadsImages(saved.aiProvider.params.inputs.image)
@@ -430,9 +435,9 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                 <FieldGroup>
                   <h4 className="text-[13px] font-medium">{t("settings.provider")}</h4>
                   <p className="-mt-1 text-[11.5px] text-muted-foreground">{t("settings.providerHint")}</p>
-                  <Field>
-                    <FieldLabel htmlFor="ai-base-url">{t("settings.providerBaseUrl")}</FieldLabel>
-                    <div className="flex gap-2">
+                  <div className="flex flex-col gap-3 rounded-[12px] border border-border p-3">
+                    <Field>
+                      <FieldLabel htmlFor="ai-base-url">{t("settings.providerBaseUrl")}</FieldLabel>
                       <Input
                         id="ai-base-url"
                         value={baseUrl}
@@ -441,58 +446,30 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                         autoComplete="off"
                         className="h-9"
                       />
-                          <Popover
-                            open={modelPickerOpen}
-                            onOpenChange={(next) => {
-                              if (next && !providerReady) {
-                                toast.error(t("settings.providerModelsUnconfigured"))
-                                return
-                              }
-                              setModelPickerOpen(next)
-                              // Ask the endpoint what it offers the first time the list is
-                              // opened; a saved list would go stale without anyone noticing.
-                              if (next && models === null) {
-                                void listAiModels()
-                                  .then(setModels)
-                                  .catch((reason: unknown) => {
-                                    setModels([])
-                                    toast.error(modelListError(reason, t))
-                                  })
-                              }
-                            }}
-                          >
-                            <PopoverTrigger asChild>
-                              <Button type="button" variant="outline" className="h-9 shrink-0 gap-1.5 px-3 text-[12.5px]">
-                                <RefreshCw className="size-3.5" aria-hidden="true" />
-                                {t("settings.providerModels")}
-                                <ChevronDown className="size-3.5" aria-hidden="true" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent align="end" className="w-[320px] p-0">
-                              <Command>
-                                <CommandInput placeholder={t("settings.providerModelsSearch")} />
-                                <CommandList>
-                                  <CommandEmpty>{t("settings.providerModelsEmpty")}</CommandEmpty>
-                                  <CommandGroup>
-                                    {(models ?? []).map((id) => (
-                                      <CommandItem
-                                        key={id}
-                                        value={id}
-                                        onSelect={() => {
-                                          setModel(id)
-                                          setModelPickerOpen(false)
-                                        }}
-                                      >
-                                        {id}
-                                      </CommandItem>
-                                    ))}
-                                  </CommandGroup>
-                                </CommandList>
-                              </Command>
-                            </PopoverContent>
-                          </Popover>
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="ai-key">{t("settings.providerKey")}</FieldLabel>
+                      <Input
+                        id="ai-key"
+                        type="password"
+                        value={apiKey}
+                        onChange={(event) => setApiKey(event.target.value)}
+                        placeholder={hasKey ? t("settings.providerKeyKeep") : t("settings.providerKeyNeeded")}
+                        autoComplete="off"
+                        className="h-9"
+                      />
+                    </Field>
+                    <div className="flex justify-end">
+                      <Button
+                        type="submit"
+                        variant="outline"
+                        className="h-9 px-3.5 text-[12.5px]"
+                        disabled={busy || baseUrl.trim().length === 0}
+                      >
+                        {t("settings.providerSave")}
+                      </Button>
                     </div>
-                  </Field>
+                  </div>
                   <div className="rounded-[12px] border border-border">
                     <button
                       type="button"
@@ -522,6 +499,55 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                         autoComplete="off"
                         className="h-9"
                       />
+                      <Popover
+                        open={modelPickerOpen}
+                        onOpenChange={(next) => {
+                          if (next && !providerReady) {
+                            toast.error(t("settings.providerModelsUnconfigured"))
+                            return
+                          }
+                          setModelPickerOpen(next)
+                          // Ask the endpoint what it offers the first time the list is
+                          // opened; a saved list would go stale without anyone noticing.
+                          if (next && models === null) {
+                            void listAiModels()
+                              .then(setModels)
+                              .catch((reason: unknown) => {
+                                setModels([])
+                                toast.error(modelListError(reason, t))
+                              })
+                          }
+                        }}
+                      >
+                        <PopoverTrigger asChild>
+                          <Button type="button" variant="outline" className="h-9 shrink-0 gap-1.5 px-3 text-[12.5px]">
+                            <RefreshCw className="size-3.5" aria-hidden="true" />
+                            {t("settings.providerModels")}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" className="w-[320px] p-0">
+                          <Command>
+                            <CommandInput placeholder={t("settings.providerModelsSearch")} />
+                            <CommandList>
+                              <CommandEmpty>{t("settings.providerModelsEmpty")}</CommandEmpty>
+                              <CommandGroup>
+                                {(models ?? []).map((id) => (
+                                  <CommandItem
+                                    key={id}
+                                    value={id}
+                                    onSelect={() => {
+                                      setModel(id)
+                                      setModelPickerOpen(false)
+                                    }}
+                                  >
+                                    {id}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </Field>
                   <div className="grid grid-cols-2 gap-3">
@@ -593,26 +619,6 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                     )}
                   </div>
 
-                  <Field>
-                    <FieldLabel htmlFor="ai-key">{t("settings.providerKey")}</FieldLabel>
-                    <Input
-                      id="ai-key"
-                      type="password"
-                      value={apiKey}
-                      onChange={(event) => setApiKey(event.target.value)}
-                      placeholder={configured ? t("settings.providerKeyKeep") : "sk-..."}
-                      autoComplete="off"
-                      className="h-9"
-                    />
-                  </Field>
-                  <Button
-                    type="submit"
-                    variant="outline"
-                    className="h-9 self-start px-3.5 text-[12.5px]"
-                    disabled={busy || baseUrl.trim().length === 0 || model.trim().length === 0}
-                  >
-                    {t("settings.providerSave")}
-                  </Button>
                 </FieldGroup>
               </form>
             </TabsContent>

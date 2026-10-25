@@ -124,6 +124,7 @@ const zhCN = {
   "settings.effort.high": "高",
   "settings.effort.xhigh": "极高",
   "settings.effort.max": "最大",
+  "settings.providerKeyNeeded": "必填：没有密钥无法获取模型列表",
   "settings.providerKeyKeep": "留空表示保持现有密钥",
   "settings.providerSave": "保存模型配置",
   "settings.providerSaved": "模型配置已保存。",
@@ -311,7 +312,7 @@ const zhCN = {
   "ai.thinking": "正在思考…",
   "ai.hint": "描述你想做的事，助手会提议命令，执行前需要你确认。",
 
-  "ai.notConfigured": "未配置模型服务。设置 AI_BASE_URL、AI_API_KEY、AI_MODEL 后可用。",
+  "ai.notConfigured": "未配置模型服务。在设置 → AI 助手中填写接口地址、密钥并选择模型。",
   "ai.denied": "已拒绝",
   "ai.approve": "执行",
   "ai.reject": "拒绝",
@@ -430,6 +431,7 @@ const enUS: Record<keyof typeof zhCN, string> = {
   "settings.effort.high": "High",
   "settings.effort.xhigh": "Very high",
   "settings.effort.max": "Max",
+  "settings.providerKeyNeeded": "Required: the model list needs a key",
   "settings.providerKeyKeep": "Leave empty to keep the stored key",
   "settings.providerSave": "Save model settings",
   "settings.providerSaved": "Model settings saved.",
@@ -617,7 +619,7 @@ const enUS: Record<keyof typeof zhCN, string> = {
   "ai.thinking": "Thinking…",
   "ai.hint": "Describe what you want done. The assistant proposes a command and you approve it before it runs.",
 
-  "ai.notConfigured": "No model configured. Set AI_BASE_URL, AI_API_KEY and AI_MODEL to enable this.",
+  "ai.notConfigured": "No model configured. Fill in the endpoint, key and model under Settings → AI assistant.",
   "ai.denied": "Denied",
   "ai.approve": "Run",
   "ai.reject": "Reject",

@@ -81,9 +81,10 @@ export async function writeProviderConfig(
   credentialKey: Uint8Array,
   now = Date.now()
 ): Promise<AiProviderConfig> {
+  // The model may be empty: credentials have to be saved before the endpoint can be
+  // asked which models it offers, and listing models needs no model name.
   const baseUrl = normalizeBaseUrl(input.baseUrl)
   const model = input.model.trim()
-  if (model.length === 0) throw new ProviderError("Model name is required")
 
   const current = await readProviderConfig(db)
   let keySealed = current.keySealed
@@ -109,6 +110,24 @@ export async function writeProviderConfig(
     .bind(SETTING_KEY, JSON.stringify(next), now)
     .run()
   return next
+}
+
+/** The endpoint and key, which is all that asking for a model list needs. */
+export async function resolveProviderEndpoint(
+  db: D1Database,
+  credentialKey: Uint8Array
+): Promise<{ baseUrl: string; apiKey: string } | null> {
+  const config = await readProviderConfig(db)
+  if (!config.baseUrl || !config.keySealed) return null
+  try {
+    const apiKey = await openCredential(credentialKey, config.keySealed, {
+      serverId: AAD_ID,
+      kind: AAD_KIND,
+    })
+    return { baseUrl: config.baseUrl, apiKey }
+  } catch {
+    return null
+  }
 }
 
 /** Opens the sealed key; the only caller is the outbound request path. */
@@ -140,7 +159,7 @@ export function describeProvider(config: AiProviderConfig): {
   params: ModelParams
 } {
   return {
-    configured: Boolean(config.baseUrl && config.model && config.keySealed),
+    configured: Boolean(config.baseUrl && config.keySealed),
     baseUrl: config.baseUrl,
     model: config.model,
     hasKey: Boolean(config.keySealed),
