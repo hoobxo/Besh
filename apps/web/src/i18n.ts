@@ -131,6 +131,8 @@ const zhCN = {
 
   "settings.currentPassword": "当前密码",
   "settings.newPassword": "新密码",
+  "settings.repeatPassword": "确认新密码",
+  "settings.passwordMismatch": "两次输入的新密码不一致。",
   "settings.changePassword": "修改密码",
   "settings.passwordChanged": "密码已更新，其他设备的登录已失效。",
   "settings.passwordWrong": "当前密码不正确。",
@@ -450,6 +452,8 @@ const enUS: Record<keyof typeof zhCN, string> = {
 
   "settings.currentPassword": "Current password",
   "settings.newPassword": "New password",
+  "settings.repeatPassword": "Repeat new password",
+  "settings.passwordMismatch": "The two passwords do not match.",
   "settings.changePassword": "Change password",
   "settings.passwordChanged": "Password updated; other sessions were signed out.",
   "settings.passwordWrong": "The current password is incorrect.",

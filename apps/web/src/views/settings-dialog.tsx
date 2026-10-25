@@ -113,6 +113,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
   const [error, setError] = useState<string | null>(null)
   const [currentPassword, setCurrentPassword] = useState("")
   const [nextPassword, setNextPassword] = useState("")
+  const [repeatPassword, setRepeatPassword] = useState("")
 
   const load = useCallback(async () => {
     try {
@@ -248,11 +249,18 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
   async function changePassword(event: React.FormEvent) {
     event.preventDefault()
     if (nextPassword.length < 8) return
+    // The single administrator has no second account to fall back on: a typo in the
+    // new password locks the install out, so the field has to be typed twice.
+    if (nextPassword !== repeatPassword) {
+      toast.error(t("settings.passwordMismatch"))
+      return
+    }
     setBusy(true)
     try {
       await api.changePassword(currentPassword, nextPassword)
       setCurrentPassword("")
       setNextPassword("")
+      setRepeatPassword("")
       toast.success(t("settings.passwordChanged"))
     } catch (reason) {
       toast.error(
@@ -266,6 +274,8 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
       setBusy(false)
     }
   }
+
+  const mismatch = repeatPassword.length > 0 && repeatPassword !== nextPassword
 
   const themeOptions = [
     { value: "dark" as const, icon: Contrast, label: t("theme.dark"), hint: t("settings.theme.darkHint") },
@@ -757,11 +767,31 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                     />
                     <p className="text-[11px] text-muted-foreground">{t("auth.passwordHint")}</p>
                   </Field>
+                  <Field>
+                    <FieldLabel htmlFor="repeat-password">{t("settings.repeatPassword")}</FieldLabel>
+                    <Input
+                      id="repeat-password"
+                      type="password"
+                      autoComplete="new-password"
+                      value={repeatPassword}
+                      onChange={(event) => setRepeatPassword(event.target.value)}
+                      aria-describedby={mismatch ? "repeat-password-error" : undefined}
+                      aria-invalid={mismatch}
+                      className="h-9"
+                    />
+                    {mismatch && (
+                      <p id="repeat-password-error" className="text-[11px] text-danger">
+                        {t("settings.passwordMismatch")}
+                      </p>
+                    )}
+                  </Field>
                   <Button
                     type="submit"
                     variant="outline"
                     className="h-9 self-start px-3.5 text-[13px]"
-                    disabled={busy || currentPassword.length === 0 || nextPassword.length < 8}
+                    disabled={
+                      busy || currentPassword.length === 0 || nextPassword.length < 8 || nextPassword !== repeatPassword
+                    }
                   >
                     {t("settings.changePassword")}
                   </Button>
