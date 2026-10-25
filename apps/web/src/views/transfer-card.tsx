@@ -86,7 +86,7 @@ function TransferRow({ item, queue }: { item: TransferItem; queue: TransferQueue
           </Button>
         )}
       </div>
-      <div className="h-[3px] w-full overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100} aria-label={item.name}>
+      <div className="h-[3px] w-full overflow-hidden rounded-full bg-muted/60" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100} aria-label={item.name}>
         <div
           className={cn(
             "h-full rounded-full transition-[width] duration-200",
