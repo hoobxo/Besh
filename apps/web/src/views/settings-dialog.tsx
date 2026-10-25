@@ -499,6 +499,22 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                         autoComplete="off"
                         className="h-9"
                       />
+                      <Select value={effort} onValueChange={(value) => setEffort(value as AiEffort)}>
+                        <SelectTrigger
+                          aria-label={t("settings.modelEffort")}
+                          title={t("settings.modelEffort")}
+                          className="h-9 w-[84px] shrink-0 justify-between px-2.5 text-[12.5px]"
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(["default", "low", "medium", "high", "xhigh", "max"] as const).map((level) => (
+                            <SelectItem key={level} value={level}>
+                              {t(`settings.effort.${level}`)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <Popover
                         open={modelPickerOpen}
                         onOpenChange={(next) => {
@@ -595,24 +611,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                     </Field>
                   </div>
 
-                  <p className="text-[11.5px] text-muted-foreground">{t("settings.modelWindowHint")}</p>
-                  <p className="text-[11.5px] text-muted-foreground">{t("settings.modelInputsHint")}</p>
-
-                  <Field>
-                    <FieldLabel htmlFor="ai-effort">{t("settings.modelEffort")}</FieldLabel>
-                    <Select value={effort} onValueChange={(value) => setEffort(value as AiEffort)}>
-                      <SelectTrigger id="ai-effort" className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(["default", "low", "medium", "high", "xhigh", "max"] as const).map((level) => (
-                          <SelectItem key={level} value={level}>
-                            {t(`settings.effort.${level}`)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
+                  <p className="text-[11.5px] text-muted-foreground">{t("settings.modelHints")}</p>
 
                       </div>
                     )}
