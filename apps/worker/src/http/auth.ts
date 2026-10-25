@@ -87,7 +87,8 @@ export async function handleLogin(request: Request, env: AuthEnv): Promise<Respo
 
   const now = Date.now()
   const session = await createSessionToken(now)
-  await insertSession(env.DB, { hash: session.hash, createdAt: now, expiresAt: session.expiresAt })
+  const inserted = await insertSession(env.DB, { hash: session.hash, createdAt: now, expiresAt: session.expiresAt }, admin)
+  if (!inserted) return jsonError("AUTH_REQUIRED", "Invalid credentials", 401)
   // Opportunistic cleanup of dead rows; cheap and keeps the table small.
   await pruneExpiredSessions(env.DB, now)
 

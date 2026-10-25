@@ -10,11 +10,9 @@ import {
   buildSessionCookie,
   createSessionToken,
   hashPassword,
-  hashSessionToken,
-  readCookie,
   verifyPassword,
 } from "../domain/auth.ts"
-import { findLiveSession, getAdmin, insertSession, updateAdminPassword } from "../domain/admin-store.ts"
+import { getAdmin, insertSession, updateAdminPassword } from "../domain/admin-store.ts"
 import { jsonError } from "./auth.ts"
 
 export type PasswordEnv = { DB: D1Database }
@@ -54,13 +52,15 @@ export async function handleChangePassword(request: Request, env: PasswordEnv): 
     return jsonError("INTERNAL", "Password hashing is unavailable in this runtime", 500)
   }
 
-  await updateAdminPassword(env.DB, record)
+  const changed = await updateAdminPassword(env.DB, record, admin)
+  if (!changed) return jsonError("AUTH_REQUIRED", "The current password is incorrect", 401)
 
-  // updateAdminPassword clears every session; issue one for the caller so they are
-  // not logged out of the tab they just used.
+  // Issue a replacement only while this request's new credential is still current.
+  // A later password change must also invalidate this in-flight response.
   const now = Date.now()
   const session = await createSessionToken(now)
-  await insertSession(env.DB, { hash: session.hash, createdAt: now, expiresAt: session.expiresAt })
+  const inserted = await insertSession(env.DB, { hash: session.hash, createdAt: now, expiresAt: session.expiresAt }, record)
+  if (!inserted) return jsonError("AUTH_REQUIRED", "Session expired or invalid", 401)
 
   const secure = new URL(request.url).protocol === "https:"
   return Response.json(

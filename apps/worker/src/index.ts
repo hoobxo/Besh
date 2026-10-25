@@ -1,4 +1,5 @@
 import { PROTOCOL_VERSION } from "@besh/contracts"
+import { withFramingProtection } from "./http/security-headers.ts"
 
 import {
   handleBootstrap,
@@ -69,7 +70,7 @@ export default {
     if (!url.pathname.startsWith("/api/")) {
       // Everything that is not an API call is the SPA. Delegating keeps routing
       // and caching in the platform instead of reimplementing static serving.
-      return await env.ASSETS.fetch(request)
+      return withFramingProtection(await env.ASSETS.fetch(request))
     }
 
     // State-changing requests must come from the same origin.
