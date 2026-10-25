@@ -126,7 +126,6 @@ const zhCN = {
   "settings.providerKeyNeeded": "必填：没有密钥无法获取模型列表",
   "settings.providerKeyKeep": "留空表示保持现有密钥",
   "settings.providerSave": "保存模型配置",
-  "settings.providerSaveHint": "先填接口地址才能保存",
   "settings.providerSaved": "模型配置已保存。",
   "settings.providerInvalid": "配置无效：请检查地址、模型名与密钥。",
 
@@ -433,7 +432,6 @@ const enUS: Record<keyof typeof zhCN, string> = {
   "settings.providerKeyNeeded": "Required: the model list needs a key",
   "settings.providerKeyKeep": "Leave empty to keep the stored key",
   "settings.providerSave": "Save model settings",
-  "settings.providerSaveHint": "Fill the endpoint before saving",
   "settings.providerSaved": "Model settings saved.",
   "settings.providerInvalid": "Rejected: check the URL, model name and key.",
 
