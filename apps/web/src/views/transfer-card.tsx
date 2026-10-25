@@ -39,17 +39,7 @@ export function TransferCard({ queue }: { queue: TransferQueue }) {
     // A custom toast is deliberately left unstyled by sonner, so the surface is ours:
     // without it the card would be transparent over whatever is behind it.
     <div className="flex w-[320px] flex-col gap-2 rounded-[var(--radius)] border border-border bg-popover p-3 text-popover-foreground shadow-lg">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium">{t("files.transfers")}</span>
-        <Button
-          size="icon-sm"
-          variant="ghost"
-          aria-label={t("files.transferClear")}
-          onClick={() => queue.clearFinished()}
-        >
-          <X />
-        </Button>
-      </div>
+      <span className="text-xs font-medium">{t("files.transfers")}</span>
       <ul className="flex flex-col gap-2">
         {items.map((item) => (
           <TransferRow key={item.id} item={item} queue={queue} />
@@ -78,15 +68,28 @@ function TransferRow({ item, queue }: { item: TransferItem; queue: TransferQueue
           {label}
         </span>
         {(item.status === "failed" || item.status === "canceled") && (
-          <Button size="icon-sm" variant="ghost" aria-label={t("files.transferRetry")} onClick={() => queue.retry(item.id)}>
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            aria-label={t("files.transferRetry")}
+            className="text-muted-foreground hover:text-foreground"
+            onClick={() => queue.retry(item.id)}
+          >
             <RotateCcw />
           </Button>
         )}
-        {(item.status === "queued" || item.status === "running") && (
-          <Button size="icon-sm" variant="ghost" aria-label={t("files.transferCancel")} onClick={() => void queue.cancel(item.id)}>
-            <X />
-          </Button>
-        )}
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          aria-label={item.status === "queued" || item.status === "running" ? t("files.transferCancel") : t("files.transferRemove")}
+          className="text-muted-foreground hover:bg-danger/15 hover:text-danger active:bg-danger/25"
+          onClick={() => {
+            if (item.status === "queued" || item.status === "running") void queue.cancel(item.id)
+            else queue.remove(item.id)
+          }}
+        >
+          <X />
+        </Button>
       </div>
       <div className="h-[3px] w-full overflow-hidden rounded-full bg-muted/60" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100} aria-label={item.name}>
         <div

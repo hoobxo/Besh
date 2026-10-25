@@ -153,6 +153,14 @@ export class TransferQueue {
     if (wasRunning) await this.#abortStaging(item)
   }
 
+  /** Drops one finished item, so a row can be dismissed on its own. */
+  remove(id: string): void {
+    const item = this.#items.find((entry) => entry.id === id)
+    if (!item || item.status === "running" || item.status === "queued") return
+    this.#items = this.#items.filter((entry) => entry.id !== id)
+    this.#notify()
+  }
+
   clearFinished(): void {
     this.#items = this.#items.filter((item) => item.status === "running" || item.status === "queued" || item.status === "failed")
     this.#notify()
