@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
-import { ArrowUp, ChevronRight, CircleCheck, Copy, Download, Eraser, File as FileIcon, FilePlus2, Folder, FolderOpen, FolderPlus, Link2, Loader2, Pencil, Plug, RefreshCw, RotateCcw, Save, Trash2, Unplug, Upload, X } from "lucide-react"
+import { ArrowUp, ChevronRight, Copy, Download, Eraser, File as FileIcon, FilePlus2, Folder, FolderOpen, FolderPlus, Link2, Loader2, Pencil, Plug, RefreshCw, Save, Trash2, Unplug, Upload } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils"
 import { formatBytes } from "@/lib/format"
 import { decodeTextFile, encodeTextFile, formatByteLimit, isWritableMode, MAX_EDITABLE_BYTES, sameVersion, type TextFile } from "@/lib/text-file"
 import { TransferQueue, type TransferItem } from "@/lib/transfer-queue"
+import { TransferCard } from "@/views/transfer-card"
 import type { FsReply, SftpEntry } from "@/lib/api"
 
 /**
@@ -63,6 +64,8 @@ const MAX_TRANSFER = 8 * 1024 * 1024
 const DOWNLOAD_SLICE = 256 * 1024
 /** Previewing decodes the whole buffer, so it stops earlier than a download does. */
 const PREVIEW_LIMIT = 1024 * 1024
+/** Fixed id, so a new file updates the card instead of stacking another toast. */
+const TRANSFER_TOAST = "besh-transfers"
 
 /** Decodes the base64 a `read` reply carries back into bytes. */
 function fromBase64(data: string): Uint8Array {
@@ -134,7 +137,6 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
    * no longer freezes browsing and a dropped chunk resumes instead of restarting.
    */
   const queueRef = useRef<TransferQueue | null>(null)
-  const [transfers, setTransfers] = useState<TransferItem[]>([])
   const requestRef = useRef(request)
   requestRef.current = request
   if (queueRef.current === null) {
@@ -156,10 +158,25 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
   }
   const queue = queueRef.current
   useEffect(() => {
-    // The queue mutates its items in place, so the list is copied on every change.
-    const sync = () => setTransfers(queue.items.map((item) => ({ ...item })))
-    sync()
-    return queue.subscribe(sync)
+    // One toast owns the whole queue: re-creating it per chunk would restart its
+    // animation, so it is created once and the card subscribes to the queue itself.
+    let shown = false
+    const show = () => {
+      if (queue.items.length === 0) {
+        if (shown) toast.dismiss(TRANSFER_TOAST)
+        shown = false
+        return
+      }
+      if (shown) return
+      shown = true
+      toast.custom(() => <TransferCard queue={queue} />, { id: TRANSFER_TOAST, duration: Infinity, dismissible: false })
+    }
+    show()
+    const unsubscribe = queue.subscribe(show)
+    return () => {
+      unsubscribe()
+      if (shown) toast.dismiss(TRANSFER_TOAST)
+    }
   }, [queue])
 
   /** Saves a finished download, and refreshes the listing after an upload lands. */
@@ -724,59 +741,6 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
           </Hint>
         )}
       </div>
-
-      {transfers.length > 0 && (
-        <div className="shrink-0 border-b border-border/60 px-3 py-1" role="status" aria-live="polite">
-          <ul className="flex flex-col gap-1">
-            {transfers.map((item) => {
-              const total = item.size || 1
-              const percent = Math.min(100, Math.round((item.transferred / total) * 100))
-              const settled = item.status === "done" || item.status === "failed" || item.status === "canceled"
-              const label = item.status === "running" ? `${percent}%`
-                : item.status === "queued" ? t("files.transferQueued")
-                : item.status === "done" ? t("files.transferDone")
-                : item.status === "failed" ? t("files.transferFailed")
-                : t("files.transferCanceled")
-              return (
-                <li key={item.id} className="flex items-center gap-2 font-mono text-[10.5px]">
-                  {item.direction === "upload" ? <Upload className="size-3 shrink-0 text-muted-foreground" /> : <Download className="size-3 shrink-0 text-muted-foreground" />}
-                  <span className={cn("truncate", item.status === "canceled" && "text-muted-foreground line-through")}>{item.name}</span>
-                  <span className="shrink-0 text-muted-foreground">
-                    {formatBytes(item.transferred)} / {formatBytes(item.size)}
-                  </span>
-                  <span className={cn("shrink-0 tabular-nums", item.status === "failed" ? "text-danger" : item.status === "done" ? "text-ok" : "text-muted-foreground")}>
-                    {label}
-                  </span>
-                  <span className="ml-auto flex shrink-0 items-center gap-0.5">
-                    {(item.status === "failed" || item.status === "canceled") && (
-                      <Hint label={t("files.transferRetry")}>
-                        <Button size="icon-sm" variant="ghost" aria-label={t("files.transferRetry")} onClick={() => queue.retry(item.id)}>
-                          <RotateCcw />
-                        </Button>
-                      </Hint>
-                    )}
-                    {!settled && (
-                      <Hint label={t("files.transferCancel")}>
-                        <Button size="icon-sm" variant="ghost" aria-label={t("files.transferCancel")} onClick={() => void queue.cancel(item.id)}>
-                          <X />
-                        </Button>
-                      </Hint>
-                    )}
-                    {settled && item.status !== "failed" && (
-                      <Hint label={t("files.transferClear")}>
-                        <Button size="icon-sm" variant="ghost" aria-label={t("files.transferClear")} onClick={() => queue.clearFinished()}>
-                          <CircleCheck />
-                        </Button>
-                      </Hint>
-                    )}
-                  </span>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      )}
-
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Directory tree: 175px */}

@@ -70,6 +70,8 @@ function nextId(): string {
 export class TransferQueue {
   #items: TransferItem[] = []
   #running = false
+  /** Bumped on every change, so a subscriber can tell whether anything moved. */
+  #version = 0
   #listeners = new Set<() => void>()
   readonly #io: TransferIo
   readonly #options: Required<Omit<TransferQueueOptions, "onSettled">> & Pick<TransferQueueOptions, "onSettled">
@@ -81,6 +83,8 @@ export class TransferQueue {
 
   get items(): TransferItem[] { return this.#items }
   get running(): boolean { return this.#running }
+  /** Snapshot for `useSyncExternalStore`: the list mutates in place, so this counts. */
+  get version(): number { return this.#version }
 
   subscribe(listener: () => void): () => void {
     this.#listeners.add(listener)
@@ -88,6 +92,7 @@ export class TransferQueue {
   }
 
   #notify(): void {
+    this.#version += 1
     for (const listener of this.#listeners) listener()
   }
 
