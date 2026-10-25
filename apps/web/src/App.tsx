@@ -705,19 +705,24 @@ function LoginScreen({ onDone }: { onDone: () => void }) {
  * thing in the panel; a footer line is enough for "where did this come from".
  */
 function AuthShell({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation()
   return (
     <main className="grid min-h-dvh place-items-center bg-background p-6">
       <div className="flex w-full max-w-sm flex-col items-center gap-5">
         {children}
-        <a
-          href={PROJECT_URL}
-          target="_blank"
-          rel="noreferrer"
-          className="flex items-center gap-1.5 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <GithubMark className="size-[14px]" />
-          GitHub
-        </a>
+        <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+          <span>{t("auth.footerCopyright")}</span>
+          <span aria-hidden="true">·</span>
+          <a
+            href={PROJECT_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1.5 transition-colors hover:text-foreground"
+          >
+            <GithubMark className="size-[14px]" />
+            GitHub
+          </a>
+        </div>
       </div>
     </main>
   )
