@@ -5,7 +5,15 @@
  * the choice; a PUT is validated against the same list the decision code uses, so
  * an unknown value cannot be stored and later fall back silently.
  */
-import { PERMISSIONS, SettingsError, isPermission, readSettings, writePermission } from "../domain/settings-store.ts"
+import {
+  PERMISSIONS,
+  SettingsError,
+  isPermission,
+  readSettings,
+  readUiSettings,
+  writePermission,
+  writeUiSettings,
+} from "../domain/settings-store.ts"
 import { describeProvider, readProviderConfig, resolveProviderEndpoint, writeProviderConfig, ProviderError } from "../domain/ai-provider.ts"
 import { describeTurnstile, publicTurnstile, readTurnstileConfig, writeTurnstileConfig, TurnstileError } from "../domain/turnstile.ts"
 import { readCredentialKey } from "../domain/credential-key.ts"
@@ -28,7 +36,12 @@ export async function handleGetSettings(env: SettingsEnv): Promise<Response> {
   const provider = describeProvider(await readProviderConfig(env.DB))
   const turnstile = describeTurnstile(await readTurnstileConfig(env.DB))
   return Response.json(
-    { ...(await readSettings(env.DB, aiConfigured(env) || provider.configured)), aiProvider: provider, turnstile },
+    {
+      ...(await readSettings(env.DB, aiConfigured(env) || provider.configured)),
+      aiProvider: provider,
+      turnstile,
+      ui: await readUiSettings(env.DB),
+    },
     { headers: { "Cache-Control": "no-store" } }
   )
 }
@@ -45,6 +58,7 @@ export async function handlePutSettings(request: Request, env: SettingsEnv): Pro
     aiPermission?: unknown
     aiProvider?: { baseUrl?: unknown; model?: unknown; apiKey?: unknown; params?: unknown }
     turnstile?: { enabled?: unknown; siteKey?: unknown; secret?: unknown }
+    ui?: { theme?: unknown; language?: unknown; terminalFont?: unknown }
   }
 
   // the provider and the permission can be saved independently
@@ -76,6 +90,17 @@ export async function handlePutSettings(request: Request, env: SettingsEnv): Pro
     }
   }
 
+  // Appearance settings are independent of the AI ones; saving one must not
+  // require sending the other.
+  if (parsed.ui) {
+    try {
+      await writeUiSettings(env.DB, parsed.ui)
+    } catch (error) {
+      if (error instanceof SettingsError) return jsonError("INVALID_REQUEST", error.message, 400)
+      throw error
+    }
+  }
+
   if (parsed.turnstile) {
     const key = readCredentialKey(env)
     if (!key) return jsonError("INTERNAL", "Credential key is not configured", 500)
@@ -90,7 +115,12 @@ export async function handlePutSettings(request: Request, env: SettingsEnv): Pro
   const provider = describeProvider(await readProviderConfig(env.DB))
   const turnstile = describeTurnstile(await readTurnstileConfig(env.DB))
   return Response.json(
-    { ...(await readSettings(env.DB, aiConfigured(env) || provider.configured)), aiProvider: provider, turnstile },
+    {
+      ...(await readSettings(env.DB, aiConfigured(env) || provider.configured)),
+      aiProvider: provider,
+      turnstile,
+      ui: await readUiSettings(env.DB),
+    },
     { headers: { "Cache-Control": "no-store" } }
   )
 }

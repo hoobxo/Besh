@@ -20,7 +20,8 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import appIcon from "@/assets/web/icon.webp"
 import { GithubMark } from "@/components/github-mark"
 import { PROJECT_URL, PROJECT_VERSION } from "@/lib/project"
-import { clampTerminalFont, readTerminalFont, saveTerminalFont, TERMINAL_FONT_MAX, TERMINAL_FONT_MIN } from "@/lib/terminal-font"
+import { clampTerminalFont, readTerminalFont, TERMINAL_FONT_MAX, TERMINAL_FONT_MIN } from "@/lib/terminal-font"
+import { saveUiSettings } from "@/lib/ui-settings"
 
 /** One entry per step the terminal accepts, so the dropdown cannot offer an invalid size. */
 const TERMINAL_FONT_SIZES = Array.from(
@@ -30,7 +31,6 @@ const TERMINAL_FONT_SIZES = Array.from(
 import { formatTokenCount, parseTokenCount } from "@/lib/tokens"
 import { api, ApiError, listAiModels, type Group, type Permission, type ReasoningEffort as AiEffort } from "@/lib/api"
 import { cn } from "@/lib/utils"
-import { setLanguage } from "@/i18n"
 import { useThemeChoice } from "@/views/theme-toggle"
 
 /** One nav row: 40 tall, filled when active, no line indicator. */
@@ -69,14 +69,19 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
   const language = i18n.resolvedLanguage ?? "zh-CN"
   const [fontSize, setFontSize] = useState(readTerminalFont)
 
+  // Both choices go to the installation's settings; the clamp stays because the
+  // server rejects anything outside the range it advertises.
   function changeFontSize(next: number) {
     const size = clampTerminalFont(next)
     setFontSize(size)
-    saveTerminalFont(size)
+    void saveUiSettings({ terminalFont: size }).catch(() => {
+      setFontSize(readTerminalFont())
+      toast.error(t("settings.saveFailed"))
+    })
   }
 
   function switchLanguage(next: "zh-CN" | "en-US") {
-    setLanguage(next)
+    void saveUiSettings({ language: next }).catch(() => toast.error(t("settings.saveFailed")))
   }
 
   const [groups, setGroups] = useState<Group[] | null>(null)
@@ -368,7 +373,6 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
               <div className="mt-3 flex items-center justify-between gap-3">
                 <div className="flex flex-col">
                   <span className="text-[13px] text-muted-foreground">{t("settings.terminalFont")}</span>
-                  <span className="text-[11px] text-muted-foreground">{t("settings.terminalFontHint")}</span>
                 </div>
                 <Select value={String(fontSize)} onValueChange={(value) => changeFontSize(Number(value))}>
                   <SelectTrigger
@@ -769,12 +773,11 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
               <h3 className="text-[15px] font-semibold">{t("settings.sections.about")}</h3>
               <p className="-mt-1 text-[13px] text-muted-foreground">{t("settings.aboutHint")}</p>
 
-              <div className="mt-1 flex items-center gap-3 rounded-lg border border-border bg-card p-4">
+              <div className="mt-1 flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
                 <img src={appIcon} alt="" aria-hidden="true" className="size-10 rounded-[10px]" />
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[13px] font-semibold">{t("app.brand")}</span>
-                  <span className="text-[13px] tabular-nums text-muted-foreground">{PROJECT_VERSION}</span>
-                </div>
+                <span className="text-[15px] font-semibold">{t("app.brand")}</span>
+                <span className="flex-1" />
+                <span className="text-[13px] tabular-nums text-muted-foreground">{PROJECT_VERSION}</span>
               </div>
 
               <a

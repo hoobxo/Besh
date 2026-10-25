@@ -34,6 +34,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { api, turnstileConfig, ApiError, type Group, type Permission, type Server } from "@/lib/api"
+import { applyUiSettings } from "@/lib/ui-settings"
 const ServerDialog = lazy(() =>
   import("@/views/server-dialog").then((module) => ({ default: module.ServerDialog }))
 )
@@ -233,6 +234,9 @@ function Shell({ onSignedOut }: { onSignedOut: () => void }) {
         api.settings(),
       ])
       setPermission(nextSettings.aiPermission)
+      // Theme, language and terminal size live on the server; this is where this
+      // browser picks them up.
+      applyUiSettings(nextSettings.ui)
       setAiConfigured(nextSettings.aiConfigured || nextSettings.aiProvider.configured)
       setServers(nextServers)
       setGroups(nextGroups)

@@ -136,6 +136,7 @@ export const api = {
     aiConfigured: boolean
     aiProvider: AiProvider
     turnstile: TurnstileState
+    ui: UiSettings
   }> {
     return await request("/api/settings")
   },
@@ -144,11 +145,13 @@ export const api = {
     aiPermission?: Permission
     aiProvider?: { baseUrl: string; model: string; apiKey?: string; params?: unknown }
     turnstile?: { enabled?: boolean; siteKey?: string; secret?: string }
+    ui?: Partial<UiSettings>
   }): Promise<{
     aiPermission: Permission
     aiConfigured: boolean
     aiProvider: AiProvider
     turnstile: TurnstileState
+    ui: UiSettings
   }> {
     return request("/api/settings", { method: "PUT", body: JSON.stringify(input) })
   },
@@ -299,6 +302,13 @@ export async function listAiModels(): Promise<string[]> {
 }
 
 type TurnstileConfig = { enabled: boolean; siteKey: string }
+
+/** Appearance settings stored on the server, not in this browser. */
+export type UiSettings = {
+  theme: "system" | "light" | "dark"
+  language: "zh-CN" | "en-US"
+  terminalFont: number
+}
 
 /** What the settings dialog is allowed to see: never the secret itself. */
 type TurnstileState = { enabled: boolean; siteKey: string; hasSecret: boolean }
