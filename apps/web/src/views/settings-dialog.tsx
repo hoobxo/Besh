@@ -550,7 +550,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                       </Popover>
                     </div>
                   </Field>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     <Field>
                       <FieldLabel htmlFor="ai-context">{t("settings.modelContext")}</FieldLabel>
                       <Input
@@ -573,31 +573,30 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                         className="h-9"
                       />
                     </Field>
+                    <Field>
+                      <FieldLabel>{t("settings.modelInputs")}</FieldLabel>
+                      <div className="flex h-9 items-center gap-1.5">
+                        {/* Text is not optional: the assistant answers in text and runs tools. */}
+                        <Toggle size="sm" pressed disabled className="h-9 gap-1 px-2 text-[12px] opacity-70">
+                          <Check aria-hidden="true" />
+                          {t("settings.modelInputText")}
+                        </Toggle>
+                        <Toggle
+                          size="sm"
+                          pressed={readsImages}
+                          onPressedChange={setReadsImages}
+                          className="h-9 gap-1 px-2 text-[12px]"
+                          aria-label={t("settings.modelInputImage")}
+                        >
+                          {readsImages ? <Check aria-hidden="true" /> : <Circle aria-hidden="true" />}
+                          {t("settings.modelInputImage")}
+                        </Toggle>
+                      </div>
+                    </Field>
                   </div>
 
                   <p className="text-[11.5px] text-muted-foreground">{t("settings.modelWindowHint")}</p>
-
-                  <Field>
-                    <FieldLabel>{t("settings.modelInputs")}</FieldLabel>
-                    <div className="flex items-center gap-2">
-                      {/* Text is not optional: the assistant answers in text and runs tools. */}
-                      <Toggle size="sm" pressed disabled className="h-8 gap-1.5 px-3 text-[12px] opacity-70">
-                        <Check aria-hidden="true" />
-                        {t("settings.modelInputText")}
-                      </Toggle>
-                      <Toggle
-                        size="sm"
-                        pressed={readsImages}
-                        onPressedChange={setReadsImages}
-                        className="h-8 gap-1.5 px-3 text-[12px]"
-                        aria-label={t("settings.modelInputImage")}
-                      >
-                        {readsImages ? <Check aria-hidden="true" /> : <Circle aria-hidden="true" />}
-                        {t("settings.modelInputImage")}
-                      </Toggle>
-                    </div>
-                    <p className="text-[11.5px] text-muted-foreground">{t("settings.modelInputsHint")}</p>
-                  </Field>
+                  <p className="text-[11.5px] text-muted-foreground">{t("settings.modelInputsHint")}</p>
 
                   <Field>
                     <FieldLabel htmlFor="ai-effort">{t("settings.modelEffort")}</FieldLabel>
