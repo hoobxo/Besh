@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
-import { ArrowUp, ChevronRight, Copy, Download, Eraser, File as FileIcon, FilePlus2, Folder, FolderOpen, FolderPlus, Link2, Loader2, Pencil, Plug, RefreshCw, Save, Trash2, Unplug, Upload } from "lucide-react"
+import { ArrowUp, ChevronRight, Copy, Download, Eraser, File as FileIcon, FilePlus2, Folder, FolderOpen, FolderPlus, Link2, Loader2, Pencil, Plug, RefreshCw, Save, Trash2, Unplug, Upload, UploadCloud } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -132,6 +132,10 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
     | null
   >(null)
   const uploadPicker = useRef<HTMLInputElement>(null)
+  // Drag depth: children fire enter/leave as the pointer crosses them, so a plain
+  // boolean flickers the overlay off while the file is still over the dock.
+  const dragDepth = useRef(0)
+  const [dropping, setDropping] = useState(false)
   /**
    * Transfers run through a queue that owns its own request stream, so a slow file
    * no longer freezes browsing and a dropped chunk resumes instead of restarting.
@@ -216,6 +220,53 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
     }
     if (rejected.length > 0) toast.error(t("files.tooLarge", { limit: formatByteLimit(MAX_TRANSFER) }))
     if (accepted.length > 0) queue.addUploads(accepted)
+  }
+
+  // A file dropped anywhere else in the app would make the browser open it and
+  // throw the session away, so file drags are swallowed window-wide.
+  useEffect(() => {
+    const swallow = (event: DragEvent) => {
+      if (event.dataTransfer && Array.from(event.dataTransfer.types).includes("Files")) event.preventDefault()
+    }
+    window.addEventListener("dragover", swallow)
+    window.addEventListener("drop", swallow)
+    return () => {
+      window.removeEventListener("dragover", swallow)
+      window.removeEventListener("drop", swallow)
+    }
+  }, [])
+
+  /** A drag only counts when it carries files, not when it carries text or a row. */
+  function carriesFiles(event: React.DragEvent<HTMLElement>) {
+    return Array.from(event.dataTransfer.types).includes("Files")
+  }
+
+  function onDragEnter(event: React.DragEvent<HTMLElement>) {
+    if (!carriesFiles(event) || isBlocked()) return
+    dragDepth.current += 1
+    setDropping(true)
+  }
+
+  function onDragOver(event: React.DragEvent<HTMLElement>) {
+    if (!carriesFiles(event) || isBlocked()) return
+    // Without this the browser refuses the drop and opens the file instead.
+    event.preventDefault()
+    event.dataTransfer.dropEffect = "copy"
+  }
+
+  function onDragLeave(event: React.DragEvent<HTMLElement>) {
+    if (!carriesFiles(event)) return
+    dragDepth.current = Math.max(0, dragDepth.current - 1)
+    if (dragDepth.current === 0) setDropping(false)
+  }
+
+  function onDrop(event: React.DragEvent<HTMLElement>) {
+    if (!carriesFiles(event)) return
+    event.preventDefault()
+    dragDepth.current = 0
+    setDropping(false)
+    const files = Array.from(event.dataTransfer.files)
+    if (files.length > 0) void transferFiles(files)
   }
 
   /** Queues a download; the bytes arrive in slices and are saved when the last one lands. */
@@ -628,7 +679,13 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div
+      className="relative flex min-h-0 flex-1 flex-col"
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
       {/* Toolbar: 39px */}
       <div className="flex h-[39px] shrink-0 items-center gap-1 border-b border-border px-2">
         {editingPath ? (
@@ -860,6 +917,21 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
           </ContextMenuContent>
         </ContextMenu>
       </div>
+
+      {/* Dropping anywhere in the dock uploads into the directory on screen. */}
+      {dropping && (
+        <div
+          className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-background/85 backdrop-blur-[2px]"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="mx-6 flex w-full max-w-md flex-col items-center gap-2 rounded-xl border-2 border-dashed border-primary/50 bg-background px-6 py-8 text-center">
+            <UploadCloud className="size-7 text-primary" aria-hidden="true" />
+            <p className="text-[13px] font-medium">{t("files.dropTitle")}</p>
+            <p className="break-all text-[11px] text-muted-foreground">{t("files.dropHint", { path })}</p>
+          </div>
+        </div>
+      )}
 
       <PromptDialog
         open={asking?.kind === "mkdir" || asking?.kind === "newFile" || asking?.kind === "rename"}
