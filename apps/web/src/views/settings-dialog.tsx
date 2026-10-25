@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Bot, Contrast, Eye, Info, Minus, Network, Palette, Plus, Settings, ShieldCheck, X, Zap } from "lucide-react"
+import { Bot, Contrast, Eye, Info, Network, Palette, Settings, ShieldCheck, X, Zap } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
 import { Check, ChevronDown, Circle, Lock, RefreshCw } from "lucide-react"
@@ -21,6 +21,12 @@ import appIcon from "@/assets/web/icon.webp"
 import { GithubMark } from "@/components/github-mark"
 import { PROJECT_URL, PROJECT_VERSION } from "@/lib/project"
 import { clampTerminalFont, readTerminalFont, saveTerminalFont, TERMINAL_FONT_MAX, TERMINAL_FONT_MIN } from "@/lib/terminal-font"
+
+/** One entry per step the terminal accepts, so the dropdown cannot offer an invalid size. */
+const TERMINAL_FONT_SIZES = Array.from(
+  { length: TERMINAL_FONT_MAX - TERMINAL_FONT_MIN + 1 },
+  (_, index) => TERMINAL_FONT_MIN + index
+)
 import { formatTokenCount, parseTokenCount } from "@/lib/tokens"
 import { api, ApiError, listAiModels, type Group, type Permission, type ReasoningEffort as AiEffort } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -364,29 +370,27 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                   <span className="text-[13px] text-muted-foreground">{t("settings.terminalFont")}</span>
                   <span className="text-[11px] text-muted-foreground">{t("settings.terminalFontHint")}</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <Button
-                    variant="outline"
-                    size="icon-sm"
-                    className="size-8"
-                    aria-label={t("settings.terminalFontSmaller")}
-                    disabled={fontSize <= TERMINAL_FONT_MIN}
-                    onClick={() => changeFontSize(fontSize - 1)}
+                <Select value={String(fontSize)} onValueChange={(value) => changeFontSize(Number(value))}>
+                  <SelectTrigger
+                    aria-label={t("settings.terminalFont")}
+                    title={t("settings.terminalFont")}
+                    className="h-9 w-[104px] shrink-0 justify-between px-3 text-[13px]"
                   >
-                    <Minus />
-                  </Button>
-                  <span className="w-11 text-center font-mono text-[13px] tabular-nums">{fontSize}px</span>
-                  <Button
-                    variant="outline"
-                    size="icon-sm"
-                    className="size-8"
-                    aria-label={t("settings.terminalFontLarger")}
-                    disabled={fontSize >= TERMINAL_FONT_MAX}
-                    onClick={() => changeFontSize(fontSize + 1)}
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent
+                    position="popper"
+                    align="start"
+                    sideOffset={4}
+                    className="w-[var(--radix-select-trigger-width)] min-w-0"
                   >
-                    <Plus />
-                  </Button>
-                </div>
+                    {TERMINAL_FONT_SIZES.map((size) => (
+                      <SelectItem key={size} value={String(size)}>
+                        {size}px
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </TabsContent>
 
