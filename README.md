@@ -61,7 +61,7 @@
 ```bash
 npm ci
 npm run check:web      # 构建前端，worker 直接托管 dist
-npx wrangler d1 migrations apply besh --local
+npx wrangler d1 execute besh --local --file=db/migrations/0001_init.sql
 npm run dev
 ```
 
@@ -69,13 +69,25 @@ npm run dev
 
 `npm run check` 依次跑严格类型检查、前端构建和打包 dry-run。
 
+## 数据库改动
+
+项目还在开发阶段，不维护增量迁移文件。`db/migrations/0001_init.sql` 就是完整的表结构，
+改了它之后，对已有的数据库直接执行那几条语句即可：
+
+```bash
+npx wrangler d1 execute besh --local  --command "ALTER TABLE …"   # 本地
+npx wrangler d1 execute besh --remote --command "ALTER TABLE …"   # 线上
+```
+
+需要整库重来时，删掉数据库重建，再执行一次 `0001_init.sql`。
+
 ## 部署到自己的 Cloudflare 账号
 
 ```bash
 npm ci
 npm run check:web
 npx wrangler d1 create besh                     # 把返回的 id 填进 wrangler.toml
-npx wrangler d1 migrations apply besh --remote
+npx wrangler d1 execute besh --remote --file=db/migrations/0001_init.sql -y
 npx wrangler r2 bucket create besh
 npx wrangler secret put CREDENTIAL_KEY          # base64 编码的 32 字节密钥
 npx wrangler secret put TICKET_SECRET
@@ -93,9 +105,11 @@ Fork 之后可以让 Cloudflare 直接跟着仓库构建，不用在本地跑命
 3. 面板 → Workers & Pages → Create → 连接这个仓库，构建命令与部署命令填：
 
    ```
-   npm ci && npm run check:web
-   npx wrangler d1 migrations apply besh --remote --yes && npx wrangler deploy
+   npm ci && npm run check:web && npx wrangler deploy
    ```
+
+   建表是一次性的：先用 `npx wrangler d1 execute besh --remote --file=db/migrations/0001_init.sql -y`
+   在当前数据库上执行一遍，再让构建去部署。
 
 4. 部署完成后，在 Worker 的 Settings → Variables and Secrets 里添加 `CREDENTIAL_KEY` 与 `TICKET_SECRET`（`wrangler deploy` 不会覆盖已有的 secret）
 
