@@ -863,7 +863,7 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
                 <TableRow>
                   <TableCell colSpan={5} className="px-3 py-8 text-center">
                     <Folder className="mx-auto mb-2 size-6 text-muted-foreground" aria-hidden="true" />
-                    <p className="text-[12px] font-medium">{t("files.emptyTitle")}</p>
+                    <p className="text-[13px] font-medium">{t("files.emptyTitle")}</p>
                     <p className="mt-0.5 text-[11px] text-muted-foreground">{t("files.emptyHint")}</p>
                   </TableCell>
                 </TableRow>
@@ -1017,7 +1017,7 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
           </Hint>
           {conflict && (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-[6px] border border-danger/30 bg-danger/10 px-3 py-2">
-              <span className="text-[12px] text-danger">{t("files.editConflict")}</span>
+              <span className="text-[13px] text-danger">{t("files.editConflict")}</span>
               <div className="flex gap-2">
                 <Button variant="ghost" size="xs" onClick={() => void saveEditor(true)}>
                   {t("files.editOverwrite")}

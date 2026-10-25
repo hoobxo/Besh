@@ -20,6 +20,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { SftpPanel, type FsOperation } from "@/views/sftp-panel"
+import { readTerminalFont, watchTerminalFont } from "@/lib/terminal-font"
 
 /**
  * Attaches an xterm instance to a Besh terminal socket.
@@ -305,6 +306,23 @@ export function TerminalView({ sessionId, serverId, ticket, onError, onReconnect
     return () => observer.disconnect()
   }, [])
 
+  // A size picked in the settings applies to the live terminal: remounting it would
+  // throw the scrollback away.
+  useEffect(
+    () =>
+      watchTerminalFont((size) => {
+        const terminal = terminalRef.current
+        if (!terminal) return
+        terminal.options.fontSize = size
+        fitRef.current?.fit()
+        const socket = socketRef.current
+        if (socket && ready.current && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: "resize", cols: terminal.cols, rows: terminal.rows }))
+        }
+      }),
+    []
+  )
+
   useEffect(() => {
     const element = host.current
     if (!element) return
@@ -315,7 +333,7 @@ export function TerminalView({ sessionId, serverId, ticket, onError, onReconnect
       terminal = new Terminal({
         cursorBlink: true,
         fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
-        fontSize: 13,
+        fontSize: readTerminalFont(),
         theme: terminalTheme(document.documentElement.classList.contains("dark")),
       })
       fit = new FitAddon()
@@ -325,6 +343,10 @@ export function TerminalView({ sessionId, serverId, ticket, onError, onReconnect
       fitRef.current = fit
     }
     fit.fit()
+
+    // An empty screen used to be the only sign of a connection in progress, so a slow
+    // handshake looked like a dead tab. The line is erased as soon as the shell answers.
+    terminal.write("\x1b[2m" + t("terminal.connecting") + "\x1b[0m")
 
     const socket = terminalSocket(sessionId, ticket)
     socketRef.current = socket
@@ -371,7 +393,7 @@ export function TerminalView({ sessionId, serverId, ticket, onError, onReconnect
         retry.current?.ready()
         ready.current = true
         terminal.options.disableStdin = false
-        terminal.write("\x1b[?25h")
+        terminal.write("\r\x1b[2K\x1b[?25h")
         setConnected(true)
         setDetached(false)
         onStateChangeRef.current("connected")

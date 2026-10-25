@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Bot, Contrast, Eye, Info, Network, Palette, Settings, ShieldCheck, X, Zap } from "lucide-react"
+import { Bot, Contrast, Eye, Info, Minus, Network, Palette, Plus, Settings, ShieldCheck, X, Zap } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
 import { Check, ChevronDown, Circle, Lock, RefreshCw } from "lucide-react"
@@ -20,6 +20,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import appIcon from "@/assets/web/icon.webp"
 import { GithubMark } from "@/components/github-mark"
 import { PROJECT_URL, PROJECT_VERSION } from "@/lib/project"
+import { clampTerminalFont, readTerminalFont, saveTerminalFont, TERMINAL_FONT_MAX, TERMINAL_FONT_MIN } from "@/lib/terminal-font"
 import { formatTokenCount, parseTokenCount } from "@/lib/tokens"
 import { api, ApiError, listAiModels, type Group, type Permission, type ReasoningEffort as AiEffort } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -60,6 +61,13 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
   const { t, i18n } = useTranslation()
   const { choice, setChoice } = useThemeChoice()
   const language = i18n.resolvedLanguage ?? "zh-CN"
+  const [fontSize, setFontSize] = useState(readTerminalFont)
+
+  function changeFontSize(next: number) {
+    const size = clampTerminalFont(next)
+    setFontSize(size)
+    saveTerminalFont(size)
+  }
 
   function switchLanguage(next: "zh-CN" | "en-US") {
     setLanguage(next)
@@ -315,7 +323,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
           <div className="min-h-0 flex-1 overflow-y-auto p-6">
             <TabsContent value="appearance" className="flex flex-col gap-3">
               <h3 className="text-[15px] font-semibold">{t("settings.sections.appearance")}</h3>
-              <p className="-mt-1 text-[12.5px] text-muted-foreground">{t("settings.appearanceHint")}</p>
+              <p className="-mt-1 text-[13px] text-muted-foreground">{t("settings.appearanceHint")}</p>
               <ToggleGroup
                 type="single"
                 value={choice}
@@ -330,12 +338,12 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
 
               {/* the design has no language switch; it is needed all the same */}
               <div className="mt-4 flex items-center justify-between gap-3">
-                <span className="text-[12.5px] text-muted-foreground">{t("settings.language")}</span>
+                <span className="text-[13px] text-muted-foreground">{t("settings.language")}</span>
                 <div className="flex gap-2">
                   <Button
                     variant={language === "zh-CN" ? "outline" : "ghost"}
                     size="sm"
-                    className="h-8 px-3 text-[12px]"
+                    className="h-8 px-3 text-[13px]"
                     onClick={() => void switchLanguage("zh-CN")}
                   >
                     中文
@@ -343,10 +351,40 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                   <Button
                     variant={language === "en-US" ? "outline" : "ghost"}
                     size="sm"
-                    className="h-8 px-3 text-[12px]"
+                    className="h-8 px-3 text-[13px]"
                     onClick={() => void switchLanguage("en-US")}
                   >
                     English
+                  </Button>
+                </div>
+              </div>
+
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <div className="flex flex-col">
+                  <span className="text-[13px] text-muted-foreground">{t("settings.terminalFont")}</span>
+                  <span className="text-[11px] text-muted-foreground">{t("settings.terminalFontHint")}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="icon-sm"
+                    className="size-8"
+                    aria-label={t("settings.terminalFontSmaller")}
+                    disabled={fontSize <= TERMINAL_FONT_MIN}
+                    onClick={() => changeFontSize(fontSize - 1)}
+                  >
+                    <Minus />
+                  </Button>
+                  <span className="w-11 text-center font-mono text-[13px] tabular-nums">{fontSize}px</span>
+                  <Button
+                    variant="outline"
+                    size="icon-sm"
+                    className="size-8"
+                    aria-label={t("settings.terminalFontLarger")}
+                    disabled={fontSize >= TERMINAL_FONT_MAX}
+                    onClick={() => changeFontSize(fontSize + 1)}
+                  >
+                    <Plus />
                   </Button>
                 </div>
               </div>
@@ -354,12 +392,12 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
 
             <TabsContent value="groups" className="flex flex-col gap-3">
               <h3 className="text-[15px] font-semibold">{t("settings.sections.groups")}</h3>
-              <p className="-mt-1 text-[12.5px] text-muted-foreground">{t("settings.description")}</p>
+              <p className="-mt-1 text-[13px] text-muted-foreground">{t("settings.description")}</p>
 
               <form onSubmit={addGroup} className="mt-1">
                 <div className="flex items-end gap-3">
                   <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                    <label htmlFor="new-group-name" className="text-[12.5px] font-medium">
+                    <label htmlFor="new-group-name" className="text-[13px] font-medium">
                       {t("settings.newGroup")}
                     </label>
                     <Input
@@ -374,18 +412,18 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                   <Button
                     type="submit"
                     variant="outline"
-                    className="h-9 shrink-0 px-3.5 text-[12.5px]"
+                    className="h-9 shrink-0 px-3.5 text-[13px]"
                     disabled={busy || name.trim().length === 0}
                   >
                     {t("settings.add")}
                   </Button>
                 </div>
               </form>
-              <p className="-mt-1 text-[11.5px] text-muted-foreground">{t("settings.groupHint")}</p>
+              <p className="-mt-1 text-[11px] text-muted-foreground">{t("settings.groupHint")}</p>
 
               <div className="mt-1 grid grid-cols-2 gap-2" role="list" aria-label={t("settings.sections.groups")}>
-                {groups === null && <p className="text-[12.5px] text-muted-foreground">{t("app.loading")}</p>}
-                {groups?.length === 0 && <p className="text-[12.5px] text-muted-foreground">{t("settings.noGroups")}</p>}
+                {groups === null && <p className="text-[13px] text-muted-foreground">{t("app.loading")}</p>}
+                {groups?.length === 0 && <p className="text-[13px] text-muted-foreground">{t("settings.noGroups")}</p>}
                 {groups?.map((group) => (
                   <div
                     key={group.id}
@@ -393,7 +431,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                     className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2"
                   >
                     <div className="min-w-0">
-                      <div className="truncate text-[12.5px] font-medium">{group.name}</div>
+                      <div className="truncate text-[13px] font-medium">{group.name}</div>
                       <div className="text-[11px] text-muted-foreground">
                         {t("settings.serverCount", { count: group.serverCount })}
                       </div>
@@ -415,7 +453,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
 
             <TabsContent value="ai" className="flex flex-col gap-3">
               <h3 className="text-[15px] font-semibold">{t("settings.sections.ai")}</h3>
-              <p className="-mt-1 text-[12.5px] text-muted-foreground">{t("settings.aiHint")}</p>
+              <p className="-mt-1 text-[13px] text-muted-foreground">{t("settings.aiHint")}</p>
 
               <ToggleGroup
                 type="single"
@@ -434,7 +472,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
               <form onSubmit={saveProvider}>
                 <FieldGroup>
                   <h4 className="text-[13px] font-medium">{t("settings.provider")}</h4>
-                  <p className="-mt-1 text-[11.5px] text-muted-foreground">{t("settings.providerHint")}</p>
+                  <p className="-mt-1 text-[11px] text-muted-foreground">{t("settings.providerHint")}</p>
                   <div className="flex flex-col gap-3 rounded-[12px] border border-border p-3">
                     <Field>
                       <FieldLabel htmlFor="ai-base-url">{t("settings.providerBaseUrl")}</FieldLabel>
@@ -467,8 +505,8 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                       aria-expanded={paramsOpen}
                       className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
                     >
-                      <span className="shrink-0 text-[12.5px] font-medium">{t("settings.modelAdvanced")}</span>
-                      <span className="min-w-0 flex-1 truncate text-right font-mono text-[12px] text-muted-foreground">
+                      <span className="shrink-0 text-[13px] font-medium">{t("settings.modelAdvanced")}</span>
+                      <span className="min-w-0 flex-1 truncate text-right font-mono text-[13px] text-muted-foreground">
                         {model || t("settings.modelNotSet")}
                       </span>
                       <ChevronDown
@@ -493,7 +531,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                         <SelectTrigger
                           aria-label={t("settings.modelEffort")}
                           title={t("settings.modelEffort")}
-                          className="h-9 w-[104px] shrink-0 justify-between px-3 text-[12.5px]"
+                          className="h-9 w-[104px] shrink-0 justify-between px-3 text-[13px]"
                         >
                           <SelectValue />
                         </SelectTrigger>
@@ -531,7 +569,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                         }}
                       >
                         <PopoverTrigger asChild>
-                          <Button type="button" variant="outline" className="h-9 shrink-0 gap-1.5 px-3 text-[12.5px]">
+                          <Button type="button" variant="outline" className="h-9 shrink-0 gap-1.5 px-3 text-[13px]">
                             <RefreshCw className="size-3.5" aria-hidden="true" />
                             {t("settings.providerModels")}
                           </Button>
@@ -588,7 +626,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                       <FieldLabel>{t("settings.modelInputs")}</FieldLabel>
                       <div className="flex h-9 items-center gap-1.5">
                         {/* Text is not optional: the assistant answers in text and runs tools. */}
-                        <Toggle size="sm" pressed disabled className="h-9 gap-1 px-2 text-[12px] opacity-70">
+                        <Toggle size="sm" pressed disabled className="h-9 gap-1 px-2 text-[13px] opacity-70">
                           <Check aria-hidden="true" />
                           {t("settings.modelInputText")}
                         </Toggle>
@@ -596,7 +634,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                           size="sm"
                           pressed={readsImages}
                           onPressedChange={setReadsImages}
-                          className="h-9 gap-1 px-2 text-[12px]"
+                          className="h-9 gap-1 px-2 text-[13px]"
                           aria-label={t("settings.modelInputImage")}
                         >
                           {readsImages ? <Check aria-hidden="true" /> : <Circle aria-hidden="true" />}
@@ -606,7 +644,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                     </Field>
                   </div>
 
-                  <p className="text-[11.5px] text-muted-foreground">{t("settings.modelHints")}</p>
+                  <p className="text-[11px] text-muted-foreground">{t("settings.modelHints")}</p>
 
                       </div>
                     )}
@@ -616,7 +654,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                     <Button
                       type="submit"
                       variant="outline"
-                      className="h-9 px-3.5 text-[12.5px]"
+                      className="h-9 px-3.5 text-[13px]"
                       disabled={busy || baseUrl.trim().length === 0}
                     >
                       {t("settings.providerSave")}
@@ -629,7 +667,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
 
             <TabsContent value="security" className="flex flex-col gap-3">
               <h3 className="text-[15px] font-semibold">{t("settings.sections.security")}</h3>
-              <p className="-mt-1 text-[12.5px] text-muted-foreground">{t("settings.gateHint")}</p>
+              <p className="-mt-1 text-[13px] text-muted-foreground">{t("settings.gateHint")}</p>
               <form onSubmit={saveGate} className="mt-1">
                 <FieldGroup>
                   <Field>
@@ -639,13 +677,13 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                         size="sm"
                         pressed={gateOn}
                         onPressedChange={setGateOn}
-                        className="h-8 gap-1.5 px-3 text-[12px]"
+                        className="h-8 gap-1.5 px-3 text-[13px]"
                         aria-label={t("settings.gateEnable")}
                       >
                         {gateOn ? <Check aria-hidden="true" /> : <Circle aria-hidden="true" />}
                         {gateOn ? t("settings.gateOn") : t("settings.gateOff")}
                       </Toggle>
-                      <span className="text-[11.5px] text-muted-foreground">{t("settings.gateHintShort")}</span>
+                      <span className="text-[11px] text-muted-foreground">{t("settings.gateHintShort")}</span>
                     </div>
                   </Field>
                   <Field>
@@ -656,7 +694,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                       onChange={(event) => setGateSiteKey(event.target.value)}
                       placeholder="0x4AAAAAAA…"
                       autoComplete="off"
-                      className="h-9 font-mono text-[12px]"
+                      className="h-9 font-mono text-[13px]"
                     />
                   </Field>
                   <Field>
@@ -668,13 +706,13 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                       onChange={(event) => setGateSecret(event.target.value)}
                       placeholder={gateHasSecret ? t("settings.gateSecretKeep") : "0x4AAAAAAA…"}
                       autoComplete="off"
-                      className="h-9 font-mono text-[12px]"
+                      className="h-9 font-mono text-[13px]"
                     />
                   </Field>
                   <Button
                     type="submit"
                     variant="outline"
-                    className="h-9 self-start px-3.5 text-[12.5px]"
+                    className="h-9 self-start px-3.5 text-[13px]"
                     disabled={busy}
                   >
                     {t("settings.gateSave")}
@@ -685,7 +723,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
 
             <TabsContent value="account" className="flex flex-col gap-3">
               <h3 className="text-[15px] font-semibold">{t("settings.sections.account")}</h3>
-              <p className="-mt-1 text-[12.5px] text-muted-foreground">{t("settings.accountHint")}</p>
+              <p className="-mt-1 text-[13px] text-muted-foreground">{t("settings.accountHint")}</p>
               <form onSubmit={changePassword} className="mt-1">
                 <FieldGroup>
                   <Field>
@@ -709,12 +747,12 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                       onChange={(event) => setNextPassword(event.target.value)}
                       className="h-9"
                     />
-                    <p className="text-[11.5px] text-muted-foreground">{t("auth.passwordHint")}</p>
+                    <p className="text-[11px] text-muted-foreground">{t("auth.passwordHint")}</p>
                   </Field>
                   <Button
                     type="submit"
                     variant="outline"
-                    className="h-9 self-start px-3.5 text-[12.5px]"
+                    className="h-9 self-start px-3.5 text-[13px]"
                     disabled={busy || currentPassword.length === 0 || nextPassword.length < 8}
                   >
                     {t("settings.changePassword")}
@@ -725,13 +763,13 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
 
             <TabsContent value="about" className="flex flex-col gap-3">
               <h3 className="text-[15px] font-semibold">{t("settings.sections.about")}</h3>
-              <p className="-mt-1 text-[12.5px] text-muted-foreground">{t("settings.aboutHint")}</p>
+              <p className="-mt-1 text-[13px] text-muted-foreground">{t("settings.aboutHint")}</p>
 
               <div className="mt-1 flex items-center gap-3 rounded-lg border border-border bg-card p-4">
                 <img src={appIcon} alt="" aria-hidden="true" className="size-10 rounded-[10px]" />
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-[14px] font-semibold">{t("app.brand")}</span>
-                  <span className="text-[12px] tabular-nums text-muted-foreground">{PROJECT_VERSION}</span>
+                  <span className="text-[13px] font-semibold">{t("app.brand")}</span>
+                  <span className="text-[13px] tabular-nums text-muted-foreground">{PROJECT_VERSION}</span>
                 </div>
               </div>
 
@@ -744,13 +782,13 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                 <GithubMark className="size-[18px] shrink-0" />
                 <span className="flex min-w-0 flex-col gap-0.5">
                   <span className="text-[13px] font-medium">{t("settings.repository")}</span>
-                  <span className="truncate text-[12px] text-muted-foreground">{PROJECT_URL}</span>
+                  <span className="truncate text-[13px] text-muted-foreground">{PROJECT_URL}</span>
                 </span>
               </a>
             </TabsContent>
 
             {error && (
-              <p className="mt-4 text-[12px] text-danger" role="alert">
+              <p className="mt-4 text-[13px] text-danger" role="alert">
                 {error}
               </p>
             )}
@@ -790,7 +828,7 @@ function ChoiceCard({
           />
           <span className="text-[13px] font-medium">{option.label}</span>
         </span>
-        <span className="text-[11.5px] font-normal text-muted-foreground">{option.hint}</span>
+        <span className="text-[11px] font-normal text-muted-foreground">{option.hint}</span>
       </span>
     </ToggleGroupItem>
   )

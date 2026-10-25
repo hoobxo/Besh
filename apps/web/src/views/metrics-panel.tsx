@@ -78,10 +78,10 @@ export function MetricsStrip({ metrics, open, onToggle }: {
       aria-label={open ? t("metrics.collapse") : t("metrics.expand")}
       className="flex h-11 w-full shrink-0 items-center gap-2 bg-card px-3 text-left transition-colors hover:bg-muted"
     >
-      <span className="shrink-0 font-mono text-[11.5px] text-muted-foreground">{t("metrics.title")}</span>
+      <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{t("metrics.title")}</span>
       <span className="flex-1" />
       {segments.length > 0 ? (
-        <span className="flex min-w-0 items-center gap-1.5 overflow-hidden font-mono text-[11.5px] tabular-nums">
+        <span className="flex min-w-0 items-center gap-1.5 overflow-hidden font-mono text-[11px] tabular-nums">
           {segments.map((segment, index) => (
             <span key={segment.key} className="flex shrink-0 items-center gap-1.5">
               {index > 0 && <span className="text-muted-foreground">·</span>}
@@ -94,7 +94,7 @@ export function MetricsStrip({ metrics, open, onToggle }: {
           ))}
         </span>
       ) : (
-        <span className="truncate font-mono text-[11.5px] text-muted-foreground">{t("metrics.waiting")}</span>
+        <span className="truncate font-mono text-[11px] text-muted-foreground">{t("metrics.waiting")}</span>
       )}
       {open ? (
         <ChevronUp className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -112,7 +112,7 @@ export function MetricsPanel({ metrics }: { metrics: HostMetrics | null }) {
   if (!metrics) {
     return (
       <div className="bg-card p-3">
-        <p className="text-[11.5px] text-muted-foreground">{t("metrics.waiting")}</p>
+        <p className="text-[11px] text-muted-foreground">{t("metrics.waiting")}</p>
       </div>
     )
   }
@@ -195,7 +195,7 @@ export function MetricsPanel({ metrics }: { metrics: HostMetrics | null }) {
                   />
                 )}
               </div>
-              <div className="flex items-baseline justify-between gap-3 font-mono text-[11.5px] text-muted-foreground">
+              <div className="flex items-baseline justify-between gap-3 font-mono text-[11px] text-muted-foreground">
                 <span className="min-w-0 truncate" title={row.left}>{row.left}</span>
                 <span className="shrink-0" title={row.right}>{row.right}</span>
               </div>
@@ -212,8 +212,8 @@ function HostRow({ label, value, first }: { label: string; value: string; first?
     <div
       className={`flex items-center justify-between gap-3 py-1 ${first ? "" : "border-t border-border pt-2"}`}
     >
-      <dt className="shrink-0 font-mono text-[11.5px] text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 truncate font-mono text-[12px]" title={value}>
+      <dt className="shrink-0 font-mono text-[11px] text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 truncate font-mono text-[13px]" title={value}>
         {value}
       </dd>
     </div>

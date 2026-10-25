@@ -67,16 +67,16 @@
     --secondary: oklch(0.97 0 0);
     --secondary-foreground: oklch(0.205 0 0);
     --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
+    --muted-foreground: oklch(0.525 0 0);
     --accent: oklch(0.97 0 0);
     --accent-foreground: oklch(0.205 0 0);
     --destructive: oklch(0.577 0.245 27.325);
-    --ok: #047857;
-    --warn: #b45309;
-    --danger: #9f1239;
+    --ok: oklch(0.508 0.105 165.6);
+    --warn: oklch(0.555 0.146 49);
+    --danger: oklch(0.455 0.171 13.7);
     --border: oklch(0.922 0 0);
     --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
+    --ring: oklch(0.6 0 0);
     --radius: 0.625rem;
     /* Composer roles copied from the reference, scoped to the assistant. */
     --composer-app: #ffffff;
@@ -110,12 +110,12 @@
     --accent: oklch(0.269 0 0);
     --accent-foreground: oklch(0.985 0 0);
     --destructive: oklch(0.704 0.191 22.216);
-    --ok: #6ee7b7;
-    --warn: #fcd34d;
-    --danger: #fb7185;
+    --ok: oklch(0.845 0.13 165);
+    --warn: oklch(0.879 0.153 91.6);
+    --danger: oklch(0.719 0.169 13.4);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
+    --ring: oklch(0.65 0 0);
     --composer-app: #18181b;
     --composer-control: #26262b;
     --composer-control-hover: #303036;
@@ -160,12 +160,12 @@
   border-color: var(--composer-muted); box-shadow: none;
 }
 .ai-composer-textarea[data-slot="input-group-control"] {
-  display: block; flex: none; field-sizing: fixed;
-  width: 100%; min-height: 92px; height: 103.75px;
+  display: block; flex: none; field-sizing: content;
+  width: 100%; min-height: 92px; max-height: 220px; overflow-y: auto;
   padding: 8px 10px; resize: none; border: 0;
   border-radius: 9.6px 9.6px 0 0;
   background: transparent; color: var(--composer-primary);
-  font: inherit; font-size: 13.5px; line-height: 1.625;
+  font: inherit; font-size: 13px; line-height: 1.625;
   outline: none; box-shadow: none; opacity: 1;
 }
 .ai-composer-textarea::placeholder { color: var(--composer-muted); opacity: 1; }
@@ -207,7 +207,7 @@
   height: 28px; padding-inline: 10px;
   border: 1px solid var(--composer-border); border-radius: 9999px;
   background: var(--composer-control); color: var(--composer-secondary);
-  font-size: 11.5px; line-height: 1; white-space: nowrap;
+  font-size: 11px; line-height: 1; white-space: nowrap;
 }
 .ai-attachment-chip > svg { width: 14px; height: 14px; flex-shrink: 0; }
 .ai-attachment-remove {

@@ -129,7 +129,7 @@ export function AiPanel({
         {/* The permission decides whether a command runs by itself, so it carries the
             same state colours as the rest of the interface: safe, careful, exposed. */}
         <span
-          className={`shrink-0 rounded-[4px] border px-1.5 py-0.5 font-mono text-[10px] ${
+          className={`shrink-0 rounded-[4px] border px-1.5 py-0.5 font-mono text-[11px] ${
             permission === "readonly"
               ? "border-ok/40 bg-ok/10 text-ok"
               : permission === "confirm"
@@ -176,7 +176,7 @@ export function AiPanel({
         <div className="shrink-0 border-b border-border bg-card">
           <div className="flex max-h-[38vh] flex-col gap-0.5 overflow-y-auto p-1.5" role="list" aria-label={t("ai.conversations")}>
             {conversations.length === 0 && (
-              <p className="px-2 py-1.5 text-[12px] text-muted-foreground">{t("ai.noConversations")}</p>
+              <p className="px-2 py-1.5 text-[13px] text-muted-foreground">{t("ai.noConversations")}</p>
             )}
             {conversations.map((conversation) => (
               <div
@@ -196,7 +196,7 @@ export function AiPanel({
                 >
                   {conversation.title}
                 </button>
-                <span className="shrink-0 font-mono text-[11.5px] text-muted-foreground group-hover:opacity-0">
+                <span className="shrink-0 font-mono text-[11px] text-muted-foreground group-hover:opacity-0">
                   {relativeTime(conversation.updatedAt, t)}
                 </span>
                 <Button
@@ -224,7 +224,7 @@ export function AiPanel({
             <Button
               variant="outline"
               size="sm"
-              className="h-8 gap-1.5 px-3 text-[12.5px]"
+              className="h-8 gap-1.5 px-3 text-[13px]"
               onClick={() => {
                 onNewConversation()
                 setOpen(false)
@@ -240,7 +240,7 @@ export function AiPanel({
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
         <div className="flex min-h-full w-full min-w-0 flex-col gap-3 px-3 py-3">
           {state.entries.length === 0 && (
-            <p className="text-[14px] leading-relaxed text-muted-foreground">
+            <p className="text-[13px] leading-relaxed text-muted-foreground">
               {state.configured ? t("ai.hint") : t("ai.notConfigured")}
             </p>
           )}
@@ -255,7 +255,7 @@ export function AiPanel({
               {entry.kind === "user" && (
                 <div className="ml-auto flex w-fit max-w-[92%] flex-col items-end gap-1.5">
                   {entry.text && (
-                    <div className="rounded-lg rounded-br-[3px] border border-border bg-muted px-2.5 py-1.5 text-[13.5px] leading-relaxed">
+                    <div className="rounded-lg rounded-br-[3px] border border-border bg-muted px-2.5 py-1.5 text-[13px] leading-relaxed">
                       {entry.text}
                     </div>
                   )}
@@ -280,27 +280,27 @@ export function AiPanel({
                 </div>
               )}
 
-              {entry.kind === "assistant" && <AssistantText text={entry.text} />}
+              {entry.kind === "assistant" && <AssistantReply text={entry.text} streaming={entry.streaming === true} />}
 
               {entry.kind === "proposal" && (
                 <div className="min-w-0 overflow-hidden rounded-lg border border-border bg-card">
                   <div className="flex items-center gap-2 border-b border-border px-2.5 py-1.5">
-                    <span className="shrink-0 font-mono text-[12px] text-muted-foreground" aria-hidden="true">
+                    <span className="shrink-0 font-mono text-[13px] text-muted-foreground" aria-hidden="true">
                       $
                     </span>
-                    <code className="min-w-0 flex-1 truncate font-mono text-[12.5px]">{entry.proposal.command}</code>
+                    <code className="min-w-0 flex-1 truncate font-mono text-[13px]">{entry.proposal.command}</code>
                     <RiskBadge risk={entry.proposal.risk} />
                   </div>
 
                   {entry.state === "pending" ? (
                     <div className="flex items-center gap-2 px-2.5 py-2">
-                      <span className="min-w-0 flex-1 truncate font-mono text-[11.5px] text-muted-foreground">
+                      <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground">
                         {entry.proposal.purpose || t("ai.state.pending")}
                       </span>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-7 px-3 text-[12px] text-danger hover:text-danger"
+                        className="h-7 px-3 text-[13px] text-danger hover:text-danger"
                         disabled={disabled}
                         onClick={() => onReject(entry.proposal.id)}
                       >
@@ -308,7 +308,7 @@ export function AiPanel({
                       </Button>
                       <Button
                         size="sm"
-                        className="h-7 px-3 text-[12px]"
+                        className="h-7 px-3 text-[13px]"
                         disabled={disabled}
                         onClick={() => onApprove(entry.proposal.id, entry.proposal.command)}
                       >
@@ -325,7 +325,7 @@ export function AiPanel({
                       {/* outcome last: you read the command, then what it did */}
                       <div
                         className={cn(
-                          "flex items-center gap-1.5 border-t border-border px-2.5 py-1.5 font-mono text-[11.5px]",
+                          "flex items-center gap-1.5 border-t border-border px-2.5 py-1.5 font-mono text-[11px]",
                           outcomeTone(entry.state, entry.exitCode)
                         )}
                       >
@@ -349,15 +349,15 @@ export function AiPanel({
               {entry.kind === "denied" && (
                 <div className="min-w-0 overflow-hidden rounded-lg border border-border bg-card">
                   <div className="flex items-center gap-2 border-b border-border px-2.5 py-1.5">
-                    <span className="shrink-0 font-mono text-[12px] text-muted-foreground" aria-hidden="true">
+                    <span className="shrink-0 font-mono text-[13px] text-muted-foreground" aria-hidden="true">
                       $
                     </span>
-                    <code className="min-w-0 flex-1 truncate font-mono text-[12.5px] text-muted-foreground line-through">
+                    <code className="min-w-0 flex-1 truncate font-mono text-[13px] text-muted-foreground line-through">
                       {entry.denial.command}
                     </code>
                     <RiskBadge risk={entry.denial.risk} />
                   </div>
-                  <div className="px-2.5 py-1.5 text-[11.5px] text-danger">
+                  <div className="px-2.5 py-1.5 text-[11px] text-danger">
                     {t("ai.denied")} · {entry.denial.reason}
                   </div>
                 </div>
@@ -366,12 +366,12 @@ export function AiPanel({
               {entry.kind === "result" && (
                 <div className="min-w-0 overflow-hidden rounded-lg border border-border bg-card">
                   <div className="flex items-center gap-2 border-b border-border px-2.5 py-1.5">
-                    <span className="shrink-0 font-mono text-[12px] text-muted-foreground" aria-hidden="true">
+                    <span className="shrink-0 font-mono text-[13px] text-muted-foreground" aria-hidden="true">
                       $
                     </span>
-                    <code className="min-w-0 flex-1 truncate font-mono text-[12.5px]">{entry.command}</code>
+                    <code className="min-w-0 flex-1 truncate font-mono text-[13px]">{entry.command}</code>
                   </div>
-                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 font-mono text-[11.5px] text-muted-foreground">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 font-mono text-[11px] text-muted-foreground">
                     <span>
                       {typeof entry.exitCode === "number"
                         ? t("ai.exitCode", { code: entry.exitCode })
@@ -384,10 +384,10 @@ export function AiPanel({
                 </div>
               )}
 
-              {entry.kind === "error" && <p className="text-[12px] text-destructive">{entry.message}</p>}
+              {entry.kind === "error" && <p className="text-[13px] text-destructive">{entry.message}</p>}
 
       {entry.kind === "note" && (
-        <p className="mx-auto w-fit rounded-full border border-border/70 px-2 py-0.5 text-[11.5px] text-muted-foreground">
+        <p className="mx-auto w-fit rounded-full border border-border/70 px-2 py-0.5 text-[11px] text-muted-foreground">
           {entry.text}
         </p>
       )}
@@ -396,7 +396,7 @@ export function AiPanel({
           {/* While text is streaming, the answer itself is the progress: a spinner under it
           would claim nothing is happening. */}
       {state.busy && !streaming && (
-        <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+        <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
           <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
           {t("ai.thinking")}
         </div>
@@ -457,7 +457,7 @@ function RiskBadge({ risk }: { risk: "read" | "write" | "destructive" }) {
   return (
     <span
       className={cn(
-        "shrink-0 rounded border px-1 py-0.5 text-[10px] font-medium",
+        "shrink-0 rounded border px-1 py-0.5 text-[11px] font-medium",
         risk === "destructive"
           ? "border-danger/40 text-danger"
           : risk === "write"
@@ -470,6 +470,42 @@ function RiskBadge({ risk }: { risk: "read" | "write" | "destructive" }) {
   )
 }
 
+/** Above this the reply is folded: one long answer used to push everything else away. */
+const COLLAPSE_CHARS = 700
+
+/**
+ * Assistant prose with a fold.
+ *
+ * A streaming reply is never folded, because the text would jump under the reader
+ * while it grows; once it settles, anything tall enough to hide the rest of the
+ * conversation collapses.
+ */
+function AssistantReply({ text, streaming }: { text: string; streaming: boolean }) {
+  const { t } = useTranslation()
+  const [expanded, setExpanded] = useState(false)
+  const foldable = !streaming && text.length > COLLAPSE_CHARS
+  const collapsed = foldable && !expanded
+  return (
+    <div className="relative min-w-0">
+      <div className={cn("min-w-0", collapsed && "max-h-[264px] overflow-hidden")}>
+        <AssistantText text={text} />
+      </div>
+      {collapsed && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-card to-transparent" />
+      )}
+      {foldable && (
+        <button
+          type="button"
+          className="mt-1 text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          onClick={() => setExpanded((value) => !value)}
+        >
+          {expanded ? t("ai.fold") : t("ai.unfold")}
+        </button>
+      )}
+    </div>
+  )
+}
+
 /**
  * Assistant prose.
  *
@@ -479,7 +515,7 @@ function RiskBadge({ risk }: { risk: "read" | "write" | "destructive" }) {
 function AssistantText({ text }: { text: string }) {
   const blocks = parseBlocks(text)
   return (
-    <div className="flex min-w-0 flex-col gap-2 text-[14px] leading-relaxed text-muted-foreground">
+    <div className="flex min-w-0 flex-col gap-2 text-[13px] leading-relaxed text-muted-foreground">
       {blocks.map((block, index) => {
         switch (block.type) {
           case "code":
@@ -487,7 +523,7 @@ function AssistantText({ text }: { text: string }) {
           case "table":
             return (
               <div key={index} className="min-w-0 overflow-x-auto rounded-lg border border-border">
-                <table className="w-full border-collapse text-[12px]">
+                <table className="w-full border-collapse text-[13px]">
                   <thead>
                     <tr className="border-b border-border bg-muted">
                       {block.header.map((cell, cellIndex) => (
@@ -517,7 +553,7 @@ function AssistantText({ text }: { text: string }) {
                 key={index}
                 className={cn(
                   "font-semibold text-foreground",
-                  block.level === 1 ? "text-[15px]" : block.level === 2 ? "text-[14px]" : "text-[13px]"
+                  block.level === 1 ? "text-[15px]" : block.level === 2 ? "text-[13px]" : "text-[13px]"
                 )}
               >
                 {inline(block.tokens)}
@@ -562,7 +598,7 @@ function inline(tokens: InlineToken[]): React.ReactNode[] {
   return tokens.map((token, index) => {
     if (token.type === "code") {
       return (
-        <code key={index} className="rounded bg-muted px-1 py-0.5 font-mono text-[12.5px] text-foreground">
+        <code key={index} className="rounded bg-muted px-1 py-0.5 font-mono text-[13px] text-foreground">
           {token.text}
         </code>
       )
@@ -624,12 +660,12 @@ function CodeBlock({ language, text }: { language: string; text: string }) {
 
   return (
     <div className="group/code relative min-w-0">
-      <pre className="min-w-0 overflow-x-auto rounded-lg border border-border bg-muted px-2.5 py-2 font-mono text-[11.5px] leading-relaxed text-foreground">
+      <pre className="min-w-0 overflow-x-auto rounded-lg border border-border bg-muted px-2.5 py-2 font-mono text-[11px] leading-relaxed text-foreground">
         <code>{text}</code>
       </pre>
       <div className="absolute right-1.5 top-1.5 flex items-center gap-1 opacity-0 transition-opacity group-hover/code:opacity-100 focus-within:opacity-100">
         {language && (
-          <span className="rounded bg-background/80 px-1 font-mono text-[10px] text-muted-foreground">{language}</span>
+          <span className="rounded bg-background/80 px-1 font-mono text-[11px] text-muted-foreground">{language}</span>
         )}
         <Hint label={copied ? t("ai.copied") : t("ai.copy")}>
           <Button

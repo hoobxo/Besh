@@ -328,7 +328,7 @@ function Shell({ onSignedOut }: { onSignedOut: () => void }) {
                     aria-pressed={isActive}
                     onClick={() => setActiveKey(item.key)}
                   className={cn(
-                    "flex h-8 max-w-[185px] items-center gap-1.5 rounded-l-[12px] border-y border-l border-border pl-2.5 pr-2.5 text-[12px] transition-colors duration-150 ease-[var(--ease-out-soft)]",
+                    "flex h-8 max-w-[185px] items-center gap-1.5 rounded-l-[12px] border-y border-l border-border pl-2.5 pr-2.5 text-[13px] transition-colors duration-150 ease-[var(--ease-out-soft)]",
                     isActive ? "bg-accent text-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
                   )}
                 >
@@ -387,7 +387,7 @@ function Shell({ onSignedOut }: { onSignedOut: () => void }) {
               <section key={bucket.id} className="flex flex-col">
                 <button
                   type="button"
-                  className="mt-1 flex h-8 items-center gap-1.5 rounded-lg px-1.5 text-left text-[12.5px] font-semibold hover:bg-accent"
+                  className="mt-1 flex h-8 items-center gap-1.5 rounded-lg px-1.5 text-left text-[13px] font-semibold hover:bg-accent"
                   onClick={() => setCollapsed((current) => ({ ...current, [bucket.id]: !current[bucket.id] }))}
                   aria-expanded={!collapsed[bucket.id]}
                 >
@@ -398,7 +398,7 @@ function Shell({ onSignedOut }: { onSignedOut: () => void }) {
                   )}
                   <Network className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                   <span className="truncate">{bucket.name}</span>
-                  <span className="ml-auto font-mono text-[10.5px] text-muted-foreground">
+                  <span className="ml-auto font-mono text-[11px] text-muted-foreground">
                     {bucket.servers.length}
                   </span>
                 </button>
@@ -460,7 +460,7 @@ function Shell({ onSignedOut }: { onSignedOut: () => void }) {
           <div className="mt-auto flex shrink-0 items-center gap-1 border-t border-border p-2">
             <Button
               variant="ghost"
-              className="h-8 min-w-0 flex-1 justify-start gap-1.5 rounded-[9.6px] px-2.5 text-[12px]"
+              className="h-8 min-w-0 flex-1 justify-start gap-1.5 rounded-[9.6px] px-2.5 text-[13px]"
               aria-label={t("app.settings")}
               onClick={() => setSettingsOpen(true)}
             >
@@ -469,7 +469,7 @@ function Shell({ onSignedOut }: { onSignedOut: () => void }) {
             </Button>
             <Button
               variant="ghost"
-              className="h-8 min-w-0 flex-1 justify-start gap-1.5 rounded-[9.6px] px-2.5 text-[12px]"
+              className="h-8 min-w-0 flex-1 justify-start gap-1.5 rounded-[9.6px] px-2.5 text-[13px]"
               aria-label={t("app.signOut")}
               onClick={() => void api.logout().then(() => onSignedOut())}
             >
@@ -710,7 +710,7 @@ function AuthShell({ children }: { children: React.ReactNode }) {
     <main className="grid min-h-dvh place-items-center bg-background p-6">
       <div className="flex w-full max-w-sm flex-col items-center gap-5">
         {children}
-        <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+        <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
           <span>{t("auth.footerCopyright")}</span>
           <span aria-hidden="true">·</span>
           <a

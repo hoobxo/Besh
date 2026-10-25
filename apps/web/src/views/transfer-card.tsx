@@ -100,7 +100,7 @@ function TransferRow({ item, queue }: { item: TransferItem; queue: TransferQueue
           style={{ width: `${percent}%` }}
         />
       </div>
-      <span className="font-mono text-[10px] text-muted-foreground">
+      <span className="font-mono text-[11px] text-muted-foreground">
         {formatBytes(item.transferred)} / {formatBytes(item.size)}
       </span>
     </li>
