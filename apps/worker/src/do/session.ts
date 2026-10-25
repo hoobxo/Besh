@@ -380,6 +380,11 @@ export class SessionOwner implements DurableObject {
       // Never queued: a cancel that waited behind the turn it cancels would arrive after
       // the answer had already finished. The same thread stays selected.
       this.#aiScope.interrupt()
+      for (const [proposalId, proposal] of this.#proposals) {
+        if (proposal.status !== "pending") continue
+        this.#proposals.set(proposalId, rejectProposal(proposal))
+        this.#answerProposal(proposalId, "not run: the user stopped this task")
+      }
       const socket = this.#socket
       if (socket) this.#send(socket, { type: "ai.canceled", id: message.id })
       return
@@ -438,11 +443,20 @@ export class SessionOwner implements DurableObject {
   }
 
   async #onAiMessage(message: ClientMessage, removesCurrent: boolean): Promise<void> {
-    if (message.type === "ai.ask" && typeof message.text === "string") {
-      await this.#handleAsk(message.id, message.text, message.attachments ?? [])
-    }
-    if (message.type === "ai.approve" && typeof message.proposalId === "string") {
-      await this.#handleApprove(message.id, message.proposalId, message.command)
+    if (message.type === "ai.ask" || message.type === "ai.approve" || message.type === "ai.reject") {
+      const token = this.#aiScope.capture()
+      try {
+        if (message.type === "ai.ask" && typeof message.text === "string") {
+          await this.#handleAsk(message.id, message.text, message.attachments ?? [])
+        } else if (message.type === "ai.approve" && typeof message.proposalId === "string") {
+          await this.#handleApprove(message.id, message.proposalId, message.command)
+        } else if (message.type === "ai.reject" && typeof message.proposalId === "string") {
+          await this.#handleReject(message.id, message.proposalId)
+        }
+      } finally {
+        if (this.#socket && this.#aiScope.current(token)) this.#send(this.#socket, { type: "ai.done", id: message.id })
+      }
+      return
     }
     if (message.type === "ai.conversations" && typeof message.id === "number") {
       await this.#replyConversations(message.id)
@@ -476,9 +490,6 @@ export class SessionOwner implements DurableObject {
     }
     if (message.type === "ai.history" && typeof message.id === "number") {
       await this.#loadSelectedHistory(message.id)
-    }
-    if (message.type === "ai.reject" && typeof message.proposalId === "string") {
-      await this.#handleReject(message.id, message.proposalId)
     }
   }
 
@@ -778,6 +789,7 @@ export class SessionOwner implements DurableObject {
     const parts: ChatAttachment[] = []
     for (const attachment of attachments) {
       const dataUrl = await readAttachmentDataUrl(this.#env.ATTACHMENTS, attachment.id, attachment.mime)
+      if (!this.#aiScope.current(token)) return
       if (!dataUrl) {
         this.#send(socket, { type: "ai.error", id, code: "ATTACHMENT_MISSING", message: "附件已失效，请重新上传" })
         return
@@ -794,6 +806,7 @@ export class SessionOwner implements DurableObject {
       text: trimmed,
       attachments: attachments.map((attachment) => ({ id: attachment.id, name: attachment.name, mime: attachment.mime })),
     })
+    if (!this.#aiScope.current(token)) return
     // The first question already says what the conversation is about, so the title
     // costs no provider request and survives an answer that never arrives.
     if (this.#history.filter((entry) => entry.role === "user").length === 1) {

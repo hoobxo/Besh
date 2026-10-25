@@ -222,7 +222,9 @@ export function TerminalView({ sessionId, serverId, ticket, onError, onReconnect
             : entry
         ),
       }))
-      sendAi({ type: "ai.reject", id: aiId.current++, proposalId })
+      if (sendAi({ type: "ai.reject", id: aiId.current++, proposalId })) {
+        setAi((current) => ({ ...current, busy: true }))
+      }
     },
     [sendAi]
   )
@@ -361,7 +363,7 @@ export function TerminalView({ sessionId, serverId, ticket, onError, onReconnect
       if (!isCurrent()) return
       let message: TerminalMessage
       try { message = JSON.parse(String(event.data)) as TerminalMessage } catch { return }
-      if (["ai.delta", "ai.reply", "ai.result", "ai.error", "ai.messages", "ai.cleared", "ai.rejected"].includes(message.type)) {
+      if (["ai.delta", "ai.reply", "ai.result", "ai.error", "ai.messages", "ai.cleared", "ai.rejected", "ai.done"].includes(message.type)) {
         if (!("id" in message) || !currentAiResponse(activeAiRequest.current, message.id)) return
       }
       if (message.type === "ready") {
@@ -425,13 +427,22 @@ export function TerminalView({ sessionId, serverId, ticket, onError, onReconnect
       if (message.type === "ai.cleared") {
         setAi((current) => ({ ...current, entries: [], usage: null }))
       }
+      if (message.type === "ai.done") {
+        setAi((current) => ({ ...current, busy: false, entries: finishStreaming(current.entries) }))
+      }
       if (message.type === "ai.canceled") {
-        // The partial answer stays on screen: it is what the model had written and
-        // deleting it would look like the question was never asked.
+        // Already executed commands keep their result; only unclaimed proposals stop.
         setAi((current) => ({
           ...current,
           busy: false,
-          entries: [...finishStreaming(current.entries), { kind: "note", text: t("ai.stopped") }],
+          entries: [
+            ...finishStreaming(current.entries).map((entry) =>
+              entry.kind === "proposal" && entry.state === "pending"
+                ? { ...entry, state: "rejected" as const }
+                : entry
+            ),
+            { kind: "note", text: t("ai.stopped") },
+          ],
         }))
       }
       if (message.type === "ai.messages") {
@@ -487,7 +498,7 @@ export function TerminalView({ sessionId, serverId, ticket, onError, onReconnect
               entries.push({ kind: "proposal", proposal: item, state: "pending" })
             }
           }
-          return { ...current, entries, busy: false }
+          return { ...current, entries, busy: (reply.proposals ?? []).some((item) => item.autoRun) }
         })
       }
       if (message.type === "ai.result") {
@@ -504,7 +515,6 @@ export function TerminalView({ sessionId, serverId, ticket, onError, onReconnect
           if (target < 0) {
             return {
               ...current,
-              busy: false,
               entries: [
                 ...current.entries,
                 { kind: "result", command: result.command, output: result.output, exitCode: result.exitCode },
@@ -516,7 +526,7 @@ export function TerminalView({ sessionId, serverId, ticket, onError, onReconnect
               ? { ...entry, state: "approved" as const, output: result.output, exitCode: result.exitCode }
               : entry
           )
-          return { ...current, busy: false, entries }
+          return { ...current, entries }
         })
       }
       if (message.type === "metrics.result") {

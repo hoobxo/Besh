@@ -255,6 +255,7 @@ export type TerminalMessage =
   | { type: "ai.messages"; id: number; entries: Array<{ kind: string; [key: string]: unknown }> }
   | { type: "ai.cleared"; id: number }
   | { type: "ai.canceled"; id: number }
+  | { type: "ai.done"; id: number }
   | { type: "ai.usage"; conversation: TokenTotals; day: TokenTotals }
   | {
       type: "ai.conversationList"

@@ -421,7 +421,7 @@ export function AiPanel({
       <AiComposer
         imagesAllowed={imagesAllowed}
         disabled={!state.configured || permission === "readonly"}
-        busy={state.busy}
+        busy={state.busy || state.entries.some((entry) => entry.kind === "proposal" && entry.state === "pending")}
         onSend={onAsk}
         onStop={onStop}
       />
