@@ -47,7 +47,7 @@
 - 单管理员：PBKDF2-SHA-256 口令、会话令牌只存摘要、HttpOnly Cookie；改密与注销立即撤销已建立的 WebSocket
 - 凭据用 AES-256-GCM 密封后存 D1，界面从不回显；主机指纹持久化，变更时拒绝连接
 - 连接目标先校验再拨号：私网、回环、链路本地、云元数据地址、IPv6 映射写法与 DNS 重绑定都被拒绝
-- 可选 Turnstile 人机验证
+- 可选 Turnstile 人机验证--备注：强烈建议开启
 - 三栏界面、深浅色主题、中英双语
 
 ## 系统要求
@@ -137,4 +137,6 @@ assets/               README 截图
 
 ## 许可证
 
-MIT，见 [LICENSE](LICENSE)。
+Apache-2.0，见 [LICENSE](LICENSE)。
+
+`packages/ssh-core` 中的 SSH 传输、密钥交换、加解密与 SFTP 报文处理提取自同样以 Apache-2.0 发布的 CF-Workers-WebSSH（见上文"来源"一节），许可证兼容；该来源与本地修改也在 `LICENSE` 末尾的第三方声明里注明。
