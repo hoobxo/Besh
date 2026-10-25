@@ -4,6 +4,8 @@
 
 基于 Cloudflare Workers + Durable Objects + D1 + R2 构建，SSH 协议由仓库内的 `packages/ssh-core` 实现，不依赖 ssh2 之类需要原生绑定的库。
 
+界面是 React 19 + Vite + Tailwind CSS 4，组件基于 shadcn/ui（Radix UI），终端用 xterm.js，浏览器内编辑器用 CodeMirror 6，多语言走 i18next。没有独立的 Web 服务：前端产物由 Worker 的静态资源绑定同源托管，页面、API、WebSocket 同一个域名。
+
 ![工作区](assets/workspace.png)
 
 ## 来源
