@@ -38,6 +38,20 @@ const TAB =
  * (the design assumes a model exists) and a fourth account section, because the
  * design has nowhere to change the password.
  */
+/**
+ * Why the model list came back empty.
+ *
+ * The endpoint answers 404 when it has no /models route and 400 when no provider is
+ * stored yet; both are expected states rather than failures, so they get their own
+ * wording instead of the server's English message.
+ */
+function modelListError(reason: unknown, t: (key: string) => string): string {
+  if (!(reason instanceof ApiError)) return t("settings.providerModelsFailed")
+  if (reason.status === 404) return t("settings.providerModelsUnsupported")
+  if (reason.status === 400) return t("settings.providerModelsUnconfigured")
+  return t("settings.providerModelsFailed")
+}
+
 export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -55,6 +69,8 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
   const [name, setName] = useState("")
   const [permission, setPermission] = useState<Permission>("confirm")
   const [configured, setConfigured] = useState(false)
+  // True once an endpoint and a key are stored; listing models needs both.
+  const [providerReady, setProviderReady] = useState(false)
   const [baseUrl, setBaseUrl] = useState("")
   const [model, setModel] = useState("")
   // Generation settings: the provider will not tell us these, so the administrator does.
@@ -84,6 +100,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
       setGroups(nextGroups)
       setPermission(settings.aiPermission)
       setConfigured(settings.aiConfigured)
+      setProviderReady(settings.aiProvider.configured)
       setBaseUrl(settings.aiProvider.baseUrl)
       setModel(settings.aiProvider.model)
       setContextWindow(formatTokenCount(settings.aiProvider.params.contextWindow))
@@ -427,6 +444,10 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                           <Popover
                             open={modelPickerOpen}
                             onOpenChange={(next) => {
+                              if (next && !providerReady) {
+                                toast.error(t("settings.providerModelsUnconfigured"))
+                                return
+                              }
                               setModelPickerOpen(next)
                               // Ask the endpoint what it offers the first time the list is
                               // opened; a saved list would go stale without anyone noticing.
@@ -435,7 +456,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                                   .then(setModels)
                                   .catch((reason: unknown) => {
                                     setModels([])
-                                    toast.error(reason instanceof ApiError ? reason.message : t("settings.providerModelsFailed"))
+                                    toast.error(modelListError(reason, t))
                                   })
                               }
                             }}
