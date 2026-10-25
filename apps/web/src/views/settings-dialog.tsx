@@ -503,7 +503,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                         <SelectTrigger
                           aria-label={t("settings.modelEffort")}
                           title={t("settings.modelEffort")}
-                          className="h-9 w-[84px] shrink-0 justify-between px-2.5 text-[12.5px]"
+                          className="h-9 w-[104px] shrink-0 justify-between px-3 text-[12.5px]"
                         >
                           <SelectValue />
                         </SelectTrigger>
