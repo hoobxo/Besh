@@ -679,13 +679,7 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
   }
 
   return (
-    <div
-      className="relative flex min-h-0 flex-1 flex-col"
-      onDragEnter={onDragEnter}
-      onDragOver={onDragOver}
-      onDragLeave={onDragLeave}
-      onDrop={onDrop}
-    >
+    <div className="flex min-h-0 flex-1 flex-col">
       {/* Toolbar: 39px */}
       <div className="flex h-[39px] shrink-0 items-center gap-1 border-b border-border px-2">
         {editingPath ? (
@@ -820,8 +814,12 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
         <ContextMenu>
           <ContextMenuTrigger asChild>
             <div
-              className={cn("min-w-0 flex-1 overflow-auto transition-opacity", busy && "opacity-60")}
+              className={cn("relative min-w-0 flex-1 overflow-auto transition-opacity", busy && "opacity-60")}
               aria-busy={busy}
+              onDragEnter={onDragEnter}
+              onDragOver={onDragOver}
+              onDragLeave={onDragLeave}
+              onDrop={onDrop}
               onContextMenuCapture={(event) => {
                 if (isBlocked()) { event.preventDefault(); event.stopPropagation() }
               }}
@@ -908,17 +906,8 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
               ))}
             </TableBody>
           </Table>
-            </div>
-          </ContextMenuTrigger>
-          <ContextMenuContent className="w-40">
-            {menuGroups.flatMap((group, index) =>
-              index === 0 ? group : [<ContextMenuSeparator key={`separator-${index}`} />, ...group]
-            )}
-          </ContextMenuContent>
-        </ContextMenu>
-      </div>
-
-      {/* Dropping anywhere in the dock uploads into the directory on screen. */}
+      {/* Dropping onto the list is the only drop zone: the caret sits on the
+          directories the files will actually land in. */}
       {dropping && (
         <div
           className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-background/85 backdrop-blur-[2px]"
@@ -932,6 +921,16 @@ export function SftpPanel({ request, enabled, onClearScreen, onDisconnect, onRec
           </div>
         </div>
       )}
+            </div>
+          </ContextMenuTrigger>
+          <ContextMenuContent className="w-40">
+            {menuGroups.flatMap((group, index) =>
+              index === 0 ? group : [<ContextMenuSeparator key={`separator-${index}`} />, ...group]
+            )}
+          </ContextMenuContent>
+        </ContextMenu>
+      </div>
+
 
       <PromptDialog
         open={asking?.kind === "mkdir" || asking?.kind === "newFile" || asking?.kind === "rename"}
