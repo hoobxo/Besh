@@ -64,7 +64,9 @@ export function ServerDialog({ open, server, groups, onOpenChange, onSaved }: {
   }, [open, server, groups])
 
   const port = Number(draft.port)
-  const credentialRequired = !server
+  // Editing normally leaves the credential blank, meaning "keep the stored one".
+  // Switching authentication cannot: the stored secret is sealed for the other kind.
+  const credentialRequired = !server || draft.authMethod !== server.authMethod
   const valid =
     draft.name.trim().length > 0 &&
     draft.host.trim().length > 0 &&
@@ -218,7 +220,11 @@ export function ServerDialog({ open, server, groups, onOpenChange, onSaved }: {
                   placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
                 />
               )}
-              {server && <FieldDescription>{t("server.keepSecret")}</FieldDescription>}
+              {credentialRequired && server ? (
+                <FieldDescription>{t("server.credentialSwitched")}</FieldDescription>
+              ) : (
+                server && <FieldDescription>{t("server.keepSecret")}</FieldDescription>
+              )}
             </Field>
 
             {error && <p className="text-sm text-destructive" role="alert">{error}</p>}

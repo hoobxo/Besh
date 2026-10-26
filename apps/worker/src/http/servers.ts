@@ -123,9 +123,11 @@ export async function handleUpdateServer(
   } catch (error) {
     if (error instanceof ServerStoreError) {
       const message = error.message
-      return message.includes("changed elsewhere")
-        ? jsonError("INVALID_REQUEST", message, 409)
-        : jsonError("NOT_FOUND", message, 404)
+      if (message.includes("changed elsewhere")) return jsonError("INVALID_REQUEST", message, 409)
+      // Switching authentication without a replacement secret would leave a row whose
+      // stored envelope no longer matches how it would be opened.
+      if (message.includes("authentication method")) return jsonError("INVALID_REQUEST", message, 400)
+      return jsonError("NOT_FOUND", message, 404)
     }
     throw error
   }
