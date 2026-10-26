@@ -1,5 +1,7 @@
 # Besh
 
+中文 · [English](README.en.md)
+
 浏览器里的 SSH 控制台，整个跑在 Cloudflare Workers 上——没有自己的服务器要维护，也没有本地数据库要备份。终端、SFTP、负载指标和一个"提议命令、由你批准"的 AI 助手在同一个界面里。
 
 基于 Cloudflare Workers + Durable Objects + D1 + R2 构建，SSH 协议由仓库内的 `packages/ssh-core` 实现，不依赖 ssh2 之类需要原生绑定的库。
