@@ -126,6 +126,7 @@ export function MetricsPanel({ metrics }: { metrics: HostMetrics | null }) {
       key: "cpu",
       label: t("metrics.cpu"),
       value: cpu as MetricValue,
+      mid: null,
       left: [cpu.cores ? t("metrics.cores", { count: cpu.cores }) : null, cpu.model].filter(Boolean).join(" "),
       right: cpu.mhz ? `${(cpu.mhz / 1000).toFixed(2)} GHz` : "—",
     },
@@ -133,6 +134,12 @@ export function MetricsPanel({ metrics }: { metrics: HostMetrics | null }) {
       key: "memory",
       label: t("metrics.memory"),
       value: memory as MetricValue,
+      /* Used over total, right before the percentage: the bar answers "how full",
+         the pair answers "how much", and neither needs the panel opened further. */
+      mid:
+        memory.used !== null && memory.total !== null
+          ? `${formatBytes(memory.used)} / ${formatBytes(memory.total)}`
+          : null,
       left: memory.cache !== null ? t("metrics.cache", { size: formatBytes(memory.cache) }) : "—",
       right:
         metrics.swap && metrics.swap.percent !== null
@@ -143,6 +150,7 @@ export function MetricsPanel({ metrics }: { metrics: HostMetrics | null }) {
       key: "disk",
       label: t("metrics.disk"),
       value: disk as MetricValue,
+      mid: null,
       left: disk.used !== null ? t("metrics.used", { size: formatBytes(disk.used) }) : "—",
       right: disk.total !== null ? formatBytes(disk.total) : "—",
     },
@@ -175,14 +183,21 @@ export function MetricsPanel({ metrics }: { metrics: HostMetrics | null }) {
           return (
             <div key={row.key} className="flex flex-col gap-1">
               {/* four corners, as the reference lays each metric out */}
-              <div className="flex items-center justify-between font-mono text-[13px]">
+              <div className="flex items-center justify-between gap-2 font-mono text-[13px]">
                 <span className="text-muted-foreground">{row.label}</span>
-                <span className="font-semibold">
-                  {percent !== null && tone ? (
-                    <span className={TEXT_TONE[tone]}>{Math.round(percent)}%</span>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
+                <span className="flex min-w-0 items-baseline justify-end gap-2">
+                  {row.mid && (
+                    <span className="min-w-0 truncate text-muted-foreground tabular-nums" title={row.mid}>
+                      {row.mid}
+                    </span>
                   )}
+                  <span className="shrink-0 font-semibold">
+                    {percent !== null && tone ? (
+                      <span className={TEXT_TONE[tone]}>{Math.round(percent)}%</span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </span>
                 </span>
               </div>
               <div className="h-1.5 w-full overflow-hidden rounded-full border border-border bg-background">
