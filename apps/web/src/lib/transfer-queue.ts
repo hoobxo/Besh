@@ -188,6 +188,7 @@ export class TransferQueue {
     if (item.direction !== "upload" || !item.uploadId) return
     const uploadId = item.uploadId
     item.uploadId = undefined
+    item.transferred = 0
     await this.#io.abortUpload(item.path, uploadId).catch(() => undefined)
   }
 
@@ -226,7 +227,10 @@ export class TransferQueue {
   async #runUpload(item: TransferItem): Promise<void> {
     const bytes = item.bytes
     if (!bytes) throw new Error("Upload has no payload")
-    if (!item.uploadId) item.uploadId = await this.#io.beginUpload(item.path)
+    if (!item.uploadId) {
+      item.transferred = 0
+      item.uploadId = await this.#io.beginUpload(item.path)
+    }
     if (item.status === "canceled") {
       // Canceled while `beginUpload` was in flight: nothing else will clean this up.
       await this.#abortStaging(item)
