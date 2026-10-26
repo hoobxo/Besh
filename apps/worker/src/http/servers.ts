@@ -101,6 +101,9 @@ export async function handleUpdateServer(
   if ("response" in target) return target.response
 
   let credential
+  if (body.authMethod !== existing.authMethod && !body.credential) {
+    return jsonError("INVALID_REQUEST", "A new credential is required when changing authentication method", 400)
+  }
   if (body.credential !== undefined && body.credential.length > 0) {
     const sealed = await seal(env, body.credential, { serverId: id, kind: body.authMethod })
     if ("response" in sealed) return sealed.response

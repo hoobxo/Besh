@@ -64,7 +64,7 @@ export function ServerDialog({ open, server, groups, onOpenChange, onSaved }: {
   }, [open, server, groups])
 
   const port = Number(draft.port)
-  const credentialRequired = !server
+  const credentialRequired = !server || draft.authMethod !== server.authMethod
   const valid =
     draft.name.trim().length > 0 &&
     draft.host.trim().length > 0 &&
