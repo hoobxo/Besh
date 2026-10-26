@@ -9,13 +9,17 @@ compatibility_date = "2026-10-01"
 
 workers_dev = true
 
+# Every version would otherwise get its own public hostname; the app has one
+# origin by design, and an extra hostname is one more place to leave unclaimed.
+preview_urls = false
+
 # Created with `wrangler d1 create besh`; the id belongs to this project.
 # A fork must replace it with the id its own `wrangler d1 create` returns.
 # Local runs (`--local`) still use their own SQLite file under .wrangler/state.
 [[d1_databases]]
 binding = "DB"
 database_name = "besh"
-database_id = "a16dabac-43ed-4546-8047-c52b5bba83cd"
+database_id = "b228986e-5362-4f67-b868-6a0a015f505e"
 migrations_dir = "db/migrations"
 
 [[durable_objects.bindings]]
