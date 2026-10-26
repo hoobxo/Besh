@@ -142,12 +142,12 @@ export async function updateServer(
   }
 
   const credential = input.credential ? JSON.stringify(input.credential) : existing.credential
-  await db
+  const updated = await db
     .prepare(
       `UPDATE servers
        SET name = ?, host = ?, port = ?, username = ?, auth_method = ?, group_id = ?, credential = ?,
            version = version + 1, updated_at = ?
-       WHERE id = ?`
+       WHERE id = ? AND version = ?`
     )
     .bind(
       input.name,
@@ -158,9 +158,14 @@ export async function updateServer(
       input.groupId,
       credential,
       input.now,
-      id
+      id,
+      existing.version
     )
     .run()
+
+  if (updated.meta.changes !== 1) {
+    throw new ServerStoreError("This server was changed elsewhere; reload before saving")
+  }
 
   return (await getServerPublic(db, id))!
 }
