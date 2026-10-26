@@ -153,5 +153,3 @@ assets/               README 截图
 ## 许可证
 
 Apache-2.0，见 [LICENSE](LICENSE)。
-
-`packages/ssh-core` 中的 SSH 传输、密钥交换、加解密与 SFTP 报文处理提取自同样以 Apache-2.0 发布的 CF-Workers-WebSSH（见上文"来源"一节），许可证兼容；该来源与本地修改也在 `LICENSE` 末尾的第三方声明里注明。
