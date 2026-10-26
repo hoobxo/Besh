@@ -134,11 +134,11 @@ export function MetricsPanel({ metrics }: { metrics: HostMetrics | null }) {
       key: "memory",
       label: t("metrics.memory"),
       value: memory as MetricValue,
-      /* Used over total, right before the percentage: the bar answers "how full",
-         the pair answers "how much", and neither needs the panel opened further. */
+      /* Used over total, in the user's format: parenthesised, no spaces around
+         the slash, so the row reads "内存 (5.2 GB/15.6 GB) 33%". */
       mid:
         memory.used !== null && memory.total !== null
-          ? `${formatBytes(memory.used)} / ${formatBytes(memory.total)}`
+          ? `(${formatBytes(memory.used)}/${formatBytes(memory.total)})`
           : null,
       left: memory.cache !== null ? t("metrics.cache", { size: formatBytes(memory.cache) }) : "—",
       right:
@@ -187,7 +187,7 @@ export function MetricsPanel({ metrics }: { metrics: HostMetrics | null }) {
                 <span className="text-muted-foreground">{row.label}</span>
                 <span className="flex min-w-0 items-baseline justify-end gap-2">
                   {row.mid && (
-                    <span className="min-w-0 truncate text-muted-foreground tabular-nums" title={row.mid}>
+                    <span className="min-w-0 truncate text-[13px] text-muted-foreground tabular-nums" title={row.mid}>
                       {row.mid}
                     </span>
                   )}
