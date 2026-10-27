@@ -151,6 +151,10 @@ assets/               README screenshots
 
 `ssh-core` references no platform APIs (browser, Node, `cloudflare:sockets`): the connection state machine, handshake, channels and SFTP all run outside a Worker.
 
+## Changelog
+
+What changed in each release, and why, is in [CHANGELOG.md](CHANGELOG.md).
+
 ## License
 
 Apache-2.0, see [LICENSE](LICENSE).

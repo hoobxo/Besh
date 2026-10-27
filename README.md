@@ -152,6 +152,10 @@ assets/               README 截图
 
 `ssh-core` 不引用任何平台 API（浏览器、Node、`cloudflare:sockets`），连接状态机、握手、通道与 SFTP 都能脱离 Worker 单独运行。
 
+## 变更记录
+
+每个版本改了什么、为什么改，见 [CHANGELOG.md](CHANGELOG.md)。
+
 ## 许可证
 
 Apache-2.0，见 [LICENSE](LICENSE)。
