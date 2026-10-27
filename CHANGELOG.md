@@ -31,6 +31,12 @@ Everything below is on `main` and deployed; the version number is not bumped yet
   without a replacement credential, the form makes the field required, and the
   API answers 400.
 - Reported in #1, #2 and #3; reproduced against this tree and fixed in `55e70eb`.
+- **A command that printed a lot took over the chat.** Tool output was rendered
+  at full length, so one `cat` of a config file pushed the conversation off the
+  screen. Anything past 12 lines or 800 characters now folds to 168px behind a
+  fade and an “expand N lines” control; opening it scrolls inside a 420px box
+  instead of growing without bound, so the control that closes it stays in view.
+  (`apps/web/src/views/ai-panel.tsx`)
 
 ### Changed
 
@@ -38,6 +44,12 @@ Everything below is on `main` and deployed; the version number is not bumped yet
   `workers.dev` preview URLs (`65831dc`).
 - `README.en.md` mirrors `README.md`, and each page links to the other
   (`3d8cd81`).
+- The expand/collapse control on a long reply is now a bordered pill with a
+  chevron that flips, shared by prose and tool output, instead of bare text that
+  read as a label (`2ed131d`).
+- Each server group in the settings dialog reads as three aligned columns — name,
+  a count badge, then its actions — instead of a name with “N servers” underneath
+  (`2ed131d`).
 
 ## v1.0.0 — 2026-10-26
 
