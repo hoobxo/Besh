@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Bot, Contrast, Eye, Info, Network, Palette, Settings, ShieldCheck, X, Zap } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
@@ -109,6 +109,12 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
   const [paramsOpen, setParamsOpen] = useState(false)
   const [apiKey, setApiKey] = useState("")
   const [hasKey, setHasKey] = useState(false)
+  // The endpoint and key are stored as soon as the field is left: there is
+  // nothing to review about them, and forgetting to press save was the common
+  // failure. Only the model limits still need an explicit save.
+  const savedBaseUrl = useRef("")
+  const [autoSaving, setAutoSaving] = useState(false)
+  const [autoSaved, setAutoSaved] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [currentPassword, setCurrentPassword] = useState("")
@@ -124,6 +130,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
       setProviderReady(settings.aiProvider.configured)
       setHasKey(settings.aiProvider.hasKey)
       setBaseUrl(settings.aiProvider.baseUrl)
+      savedBaseUrl.current = settings.aiProvider.baseUrl
       setModel(settings.aiProvider.model)
       setContextWindow(formatTokenCount(settings.aiProvider.params.contextWindow))
       setMaxOutput(formatTokenCount(settings.aiProvider.params.maxOutput))
@@ -195,6 +202,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
       setHasKey(saved.aiProvider.hasKey)
       setModels(null)
       setBaseUrl(saved.aiProvider.baseUrl)
+      savedBaseUrl.current = saved.aiProvider.baseUrl
       setModel(saved.aiProvider.model)
       setReadsImages(saved.aiProvider.params.inputs.image)
       setEffort(saved.aiProvider.params.effort)
@@ -208,6 +216,49 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
       )
     } finally {
       setBusy(false)
+    }
+  }
+
+  /* Store the endpoint and the key when the field loses focus. The whole provider
+     payload goes up, so an auto-save never clears the model limits saved earlier. */
+  async function autoSaveProvider() {
+    const nextBaseUrl = baseUrl.trim()
+    if (!nextBaseUrl || busy) return
+    if (nextBaseUrl === savedBaseUrl.current && apiKey.trim().length === 0) return
+    setAutoSaving(true)
+    setBusy(true)
+    try {
+      const saved = await api.saveSettings({
+        aiProvider: {
+          baseUrl: nextBaseUrl,
+          model,
+          apiKey,
+          params: {
+            contextWindow: parseTokenCount(contextWindow),
+            maxOutput: parseTokenCount(maxOutput),
+            inputs: { text: true, image: readsImages },
+            effort,
+          },
+        },
+      })
+      setConfigured(saved.aiProvider.configured)
+      setProviderReady(saved.aiProvider.configured)
+      setHasKey(saved.aiProvider.hasKey)
+      setModels(null)
+      setBaseUrl(saved.aiProvider.baseUrl)
+      savedBaseUrl.current = saved.aiProvider.baseUrl
+      setApiKey("")
+      setAutoSaved(true)
+      window.setTimeout(() => setAutoSaved(false), 2000)
+    } catch (reason) {
+      toast.error(
+        reason instanceof ApiError && reason.code === "INVALID_REQUEST"
+          ? t("settings.providerInvalid")
+          : t("settings.saveFailed")
+      )
+    } finally {
+      setBusy(false)
+      setAutoSaving(false)
     }
   }
 
@@ -498,6 +549,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                         id="ai-base-url"
                         value={baseUrl}
                         onChange={(event) => setBaseUrl(event.target.value)}
+                        onBlur={() => void autoSaveProvider()}
                         placeholder="https://api.openai.com/v1"
                         autoComplete="off"
                         className="h-9"
@@ -510,11 +562,24 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                         type="password"
                         value={apiKey}
                         onChange={(event) => setApiKey(event.target.value)}
+                        onBlur={() => void autoSaveProvider()}
                         placeholder={hasKey ? t("settings.providerKeyKeep") : t("settings.providerKeyNeeded")}
                         autoComplete="off"
                         className="h-9"
                       />
                     </Field>
+                  </div>
+                  <div className="flex min-h-5 items-center gap-1.5 text-[11px] text-muted-foreground">
+                    {autoSaving ? (
+                      <span>{t("settings.autoSaving")}</span>
+                    ) : autoSaved ? (
+                      <>
+                        <Check className="size-3 text-success" aria-hidden="true" />
+                        <span>{t("settings.autoSaved")}</span>
+                      </>
+                    ) : (
+                      <span>{t("settings.providerAutoSave")}</span>
+                    )}
                   </div>
                   <div className="rounded-[12px] border border-border">
                     <button
@@ -664,19 +729,20 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
 
                   <p className="text-[11px] text-muted-foreground">{t("settings.modelHints")}</p>
 
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-end gap-2">
+                  <div className="flex items-center justify-between gap-2 border-t border-border pt-3">
+                    <p className="text-[11px] text-muted-foreground">{t("settings.modelSaveHint")}</p>
                     <Button
                       type="submit"
                       variant="outline"
-                      className="h-9 px-3.5 text-[13px]"
+                      className="h-9 shrink-0 px-3.5 text-[13px]"
                       disabled={busy || baseUrl.trim().length === 0}
                     >
                       {t("settings.providerSave")}
                     </Button>
+                  </div>
+
+                      </div>
+                    )}
                   </div>
 
                 </FieldGroup>
