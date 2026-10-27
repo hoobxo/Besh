@@ -448,20 +448,18 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                     role="listitem"
                     className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2"
                   >
-                    <div className="min-w-0">
-                      <div className="truncate text-[13px] font-medium">{group.name}</div>
-                      <div className="text-[11px] text-muted-foreground">
-                        {t("settings.serverCount", { count: group.serverCount })}
-                      </div>
+                    <div className="min-w-0 flex-1 truncate text-[13px] font-medium">{group.name}</div>
+                    <div className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                      {t("settings.serverCount", { count: group.serverCount })}
                     </div>
                     <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        className="text-muted-foreground hover:text-danger"
-                        aria-label={t("settings.deleteGroup", { name: group.name })}
-                        disabled={busy}
-                        onClick={() => void removeGroup(group)}
-                      >
+                      variant="ghost"
+                      size="icon-sm"
+                      className="shrink-0 text-danger hover:bg-danger/15 hover:text-danger active:bg-danger/25"
+                      aria-label={t("settings.deleteGroup", { name: group.name })}
+                      disabled={busy}
+                      onClick={() => void removeGroup(group)}
+                    >
                       <X />
                     </Button>
                   </div>

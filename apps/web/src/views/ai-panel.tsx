@@ -8,7 +8,7 @@ import { PromptDialog } from "@/components/prompt-dialog"
 import { cn } from "@/lib/utils"
 import { parseBlocks, type InlineToken } from "@/lib/markdown"
 
-import { Bot, Check, Copy, Loader2, Menu, Pencil, Plus, Trash2, X } from "lucide-react"
+import { Bot, Check, ChevronDown, ChevronUp, Copy, Loader2, Menu, Pencil, Plus, Trash2, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { AiComposer } from "@/views/ai-composer"
@@ -317,11 +317,7 @@ export function AiPanel({
                     </div>
                   ) : (
                     <>
-                      {entry.output !== undefined && (
-                        <pre className="overflow-x-auto whitespace-pre px-2.5 py-1.5 font-mono text-[11px] leading-relaxed text-muted-foreground">
-                          {entry.output || t("ai.noOutput")}
-                        </pre>
-                      )}
+                      {entry.output !== undefined && <ToolOutput text={entry.output} />}
                       {/* outcome last: you read the command, then what it did */}
                       <div
                         className={cn(
@@ -378,9 +374,7 @@ export function AiPanel({
                         : t("ai.state.unconfirmed")}
                     </span>
                   </div>
-                  <pre className="overflow-x-auto whitespace-pre px-2.5 pb-2 font-mono text-[11px] leading-relaxed text-muted-foreground">
-                    {entry.output || t("ai.noOutput")}
-                  </pre>
+                  <ToolOutput text={entry.output} />
                 </div>
               )}
 
@@ -474,6 +468,69 @@ function RiskBadge({ risk }: { risk: "read" | "write" | "destructive" }) {
 const COLLAPSE_CHARS = 700
 
 /**
+ * Tool output is folded sooner than prose: `cat` on a config file is reference
+ * material, not something to read, and a hundred lines of it used to leave no room
+ * for the answer that follows. Counted, not measured, so it does not depend on
+ * layout having run.
+ */
+const OUTPUT_LINES = 12
+const OUTPUT_CHARS = 800
+
+/**
+ * The fold control.
+ *
+ * A bare text link read as a caption and vanished against the card. This is a
+ * real button, sits on the fade, and the chevron points the way the content goes.
+ */
+function FoldButton({ expanded, label, onClick }: { expanded: boolean; label: string; onClick: () => void }) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className="rounded-full bg-card px-2.5 text-[11px] font-medium text-muted-foreground shadow-xs hover:text-foreground"
+      onClick={onClick}
+      aria-expanded={expanded}
+    >
+      {expanded ? <ChevronUp data-icon="inline-start" /> : <ChevronDown data-icon="inline-start" />}
+      {label}
+    </Button>
+  )
+}
+
+/** A tool's output, folded once it stops being something you can take in at a glance. */
+function ToolOutput({ text }: { text: string }) {
+  const { t } = useTranslation()
+  const [expanded, setExpanded] = useState(false)
+  const lines = text.trim().length === 0 ? 0 : text.replace(/\n+$/, "").split("\n").length
+  const foldable = lines > OUTPUT_LINES || text.length > OUTPUT_CHARS
+  const collapsed = foldable && !expanded
+  return (
+    <div>
+      {/* Even opened, a huge capture gets its own scroll: otherwise the control
+          that closes it ends up a screen away from where you clicked. */}
+      <div className={cn("relative", collapsed && "max-h-[168px] overflow-hidden", foldable && !collapsed && "max-h-[420px] overflow-y-auto")}>
+        <pre className="overflow-x-auto whitespace-pre px-2.5 py-1.5 font-mono text-[11px] leading-relaxed text-muted-foreground">
+          {text || t("ai.noOutput")}
+        </pre>
+        {collapsed && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-card to-transparent" />
+        )}
+      </div>
+      {foldable && (
+        <div className="flex justify-center pb-2 pt-0.5">
+          <FoldButton
+            expanded={expanded}
+            label={expanded ? t("ai.fold") : t("ai.expandOutput", { lines })}
+            onClick={() => setExpanded((value) => !value)}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
  * Assistant prose with a fold.
  *
  * A streaming reply is never folded, because the text would jump under the reader
@@ -486,21 +543,21 @@ function AssistantReply({ text, streaming }: { text: string; streaming: boolean 
   const foldable = !streaming && text.length > COLLAPSE_CHARS
   const collapsed = foldable && !expanded
   return (
-    <div className="relative min-w-0">
-      <div className={cn("min-w-0", collapsed && "max-h-[264px] overflow-hidden")}>
+    <div className="min-w-0">
+      <div className={cn("relative min-w-0", collapsed && "max-h-[264px] overflow-hidden")}>
         <AssistantText text={text} />
+        {collapsed && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-card to-transparent" />
+        )}
       </div>
-      {collapsed && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-card to-transparent" />
-      )}
       {foldable && (
-        <button
-          type="button"
-          className="mt-1 text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-          onClick={() => setExpanded((value) => !value)}
-        >
-          {expanded ? t("ai.fold") : t("ai.unfold")}
-        </button>
+        <div className="mt-2 flex justify-center">
+          <FoldButton
+            expanded={expanded}
+            label={expanded ? t("ai.fold") : t("ai.unfold")}
+            onClick={() => setExpanded((value) => !value)}
+          />
+        </div>
       )}
     </div>
   )
