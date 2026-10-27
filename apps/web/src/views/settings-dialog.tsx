@@ -442,20 +442,22 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
               <div className="mt-1 grid grid-cols-2 gap-2" role="list" aria-label={t("settings.sections.groups")}>
                 {groups === null && <p className="text-[13px] text-muted-foreground">{t("app.loading")}</p>}
                 {groups?.length === 0 && <p className="text-[13px] text-muted-foreground">{t("settings.noGroups")}</p>}
+                {/* Three tracks with equal side columns, so the count sits in
+                    the middle of the row rather than next to the delete button. */}
                 {groups?.map((group) => (
                   <div
                     key={group.id}
                     role="listitem"
-                    className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2"
+                    className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-lg border border-border px-3 py-2"
                   >
-                    <div className="min-w-0 flex-1 truncate text-[13px] font-medium">{group.name}</div>
-                    <div className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                    <div className="min-w-0 truncate text-[13px] font-medium">{group.name}</div>
+                    <div className="justify-self-center text-[11px] tabular-nums text-muted-foreground">
                       {t("settings.serverCount", { count: group.serverCount })}
                     </div>
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      className="shrink-0 text-danger hover:bg-danger/15 hover:text-danger active:bg-danger/25"
+                      className="justify-self-end text-danger hover:bg-danger/15 hover:text-danger active:bg-danger/25"
                       aria-label={t("settings.deleteGroup", { name: group.name })}
                       disabled={busy}
                       onClick={() => void removeGroup(group)}
