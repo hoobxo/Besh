@@ -113,8 +113,6 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
   // nothing to review about them, and forgetting to press save was the common
   // failure. Only the model limits still need an explicit save.
   const savedBaseUrl = useRef("")
-  const [autoSaving, setAutoSaving] = useState(false)
-  const [autoSaved, setAutoSaved] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [currentPassword, setCurrentPassword] = useState("")
@@ -225,7 +223,6 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
     const nextBaseUrl = baseUrl.trim()
     if (!nextBaseUrl || busy) return
     if (nextBaseUrl === savedBaseUrl.current && apiKey.trim().length === 0) return
-    setAutoSaving(true)
     setBusy(true)
     try {
       const saved = await api.saveSettings({
@@ -248,8 +245,6 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
       setBaseUrl(saved.aiProvider.baseUrl)
       savedBaseUrl.current = saved.aiProvider.baseUrl
       setApiKey("")
-      setAutoSaved(true)
-      window.setTimeout(() => setAutoSaved(false), 2000)
     } catch (reason) {
       toast.error(
         reason instanceof ApiError && reason.code === "INVALID_REQUEST"
@@ -258,7 +253,6 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
       )
     } finally {
       setBusy(false)
-      setAutoSaving(false)
     }
   }
 
@@ -569,18 +563,6 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                       />
                     </Field>
                   </div>
-                  {/* Only the transient state is shown: the row keeps its height so
-                      the panel does not jump when the confirmation comes and goes. */}
-                  <div className="flex min-h-5 items-center gap-1.5 text-[11px] text-muted-foreground">
-                    {autoSaving ? (
-                      <span>{t("settings.autoSaving")}</span>
-                    ) : autoSaved ? (
-                      <>
-                        <Check className="size-3 text-success" aria-hidden="true" />
-                        <span>{t("settings.autoSaved")}</span>
-                      </>
-                    ) : null}
-                  </div>
                   <div className="rounded-[12px] border border-border">
                     <button
                       type="button"
@@ -729,8 +711,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
 
                   <p className="text-[11px] text-muted-foreground">{t("settings.modelHints")}</p>
 
-                  <div className="flex items-center justify-between gap-2 border-t border-border pt-3">
-                    <p className="text-[11px] text-muted-foreground">{t("settings.modelSaveHint")}</p>
+                  <div className="flex items-center justify-end border-t border-border pt-3">
                     <Button
                       type="submit"
                       variant="outline"
