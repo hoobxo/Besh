@@ -569,6 +569,8 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                       />
                     </Field>
                   </div>
+                  {/* Only the transient state is shown: the row keeps its height so
+                      the panel does not jump when the confirmation comes and goes. */}
                   <div className="flex min-h-5 items-center gap-1.5 text-[11px] text-muted-foreground">
                     {autoSaving ? (
                       <span>{t("settings.autoSaving")}</span>
@@ -577,9 +579,7 @@ export function SettingsDialog({ open, onOpenChange, onPermissionChange }: {
                         <Check className="size-3 text-success" aria-hidden="true" />
                         <span>{t("settings.autoSaved")}</span>
                       </>
-                    ) : (
-                      <span>{t("settings.providerAutoSave")}</span>
-                    )}
+                    ) : null}
                   </div>
                   <div className="rounded-[12px] border border-border">
                     <button
