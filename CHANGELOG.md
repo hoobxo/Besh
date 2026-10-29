@@ -4,9 +4,7 @@ Changes worth telling users about, newest first. The repository ships the
 implementation itself; this file exists so the notes for a release can be copied
 out without reconstructing them from commit messages.
 
-## v1.0.1 — unreleased
-
-Everything below is on `main` and deployed; the version number is not bumped yet.
+## v1.0.1 — 2026-10-29
 
 ### Fixed
 
@@ -49,7 +47,13 @@ Everything below is on `main` and deployed; the version number is not bumped yet
   read as a label (`2ed131d`).
 - Each server group in the settings dialog reads as three aligned columns — name,
   a count badge, then its actions — instead of a name with “N servers” underneath
-  (`2ed131d`).
+  (`2ed131d`, count centred in `41b2467`).
+- The model endpoint and API key are stored as soon as the field is left, so
+  closing the dialog no longer loses an edit; the explicit save now sits inside
+  “高级参数” and covers only what that panel holds (`eb04489`).
+- The model service block no longer explains itself: the standing hint, the
+  “saving…/saved” line and the note beside the save button are gone, and a failed
+  autosave is reported only when it fails (`d9a8224`, `3833a13`).
 
 ## v1.0.0 — 2026-10-26
 
