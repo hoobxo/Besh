@@ -38,8 +38,6 @@ out without reconstructing them from commit messages.
 
 ### Changed
 
-- `wrangler.toml` points at the rebuilt D1 database and no longer publishes
-  `workers.dev` preview URLs (`65831dc`).
 - `README.en.md` mirrors `README.md`, and each page links to the other
   (`3d8cd81`).
 - The expand/collapse control on a long reply is now a bordered pill with a
