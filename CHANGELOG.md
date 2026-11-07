@@ -4,7 +4,7 @@ Changes worth telling users about, newest first. The repository ships the
 implementation itself; this file exists so the notes for a release can be copied
 out without reconstructing them from commit messages.
 
-## Unreleased
+## v1.0.2 — unreleased
 
 ### Fixed
 
@@ -15,6 +15,13 @@ out without reconstructing them from commit messages.
   inside the dialog. The plain dialog had the same track and got the same fix.
   (`apps/web/src/components/ui/alert-dialog.tsx`,
   `apps/web/src/components/ui/dialog.tsx`)
+
+- **The terminal grid hung over the bottom of its pane.** The pane's padding was
+  counted as usable height when the grid was measured, so the last row landed in
+  the padding and was cut in half — most visibly at the bottom edge, right above
+  the file panel. The padding now lives on a wrapper and the terminal is
+  measured in an unpadded box, which leaves a small gap under the last row.
+  (`apps/web/src/views/terminal-view.tsx`)
 
 ## v1.0.1 — 2026-10-29
 
