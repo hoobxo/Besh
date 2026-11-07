@@ -660,11 +660,16 @@ export function TerminalView({ sessionId, serverId, ticket, onError, onReconnect
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <ContextMenu>
           <ContextMenuTrigger asChild>
-            <div
-              ref={host}
-              className="min-h-0 flex-2 overflow-hidden bg-[var(--terminal-bg)] p-2"
-              onContextMenu={() => setSelection(terminalRef.current?.getSelection() ?? "")}
-            />
+            {/* The padding lives on this wrapper, not on the element the terminal
+                is measured in: FitAddon reads clientHeight, which includes
+                padding, so padding here used to cost the grid its last row. */}
+            <div className="min-h-0 flex-2 overflow-hidden bg-[var(--terminal-bg)] p-2 pb-3">
+              <div
+                ref={host}
+                className="h-full min-h-0 w-full"
+                onContextMenu={() => setSelection(terminalRef.current?.getSelection() ?? "")}
+              />
+            </div>
           </ContextMenuTrigger>
           <ContextMenuContent className="w-40">
             <ContextMenuItem disabled={selection.length === 0} onSelect={() => void copySelection()}>
