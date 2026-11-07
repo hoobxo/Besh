@@ -4,6 +4,18 @@ Changes worth telling users about, newest first. The repository ships the
 implementation itself; this file exists so the notes for a release can be copied
 out without reconstructing them from commit messages.
 
+## Unreleased
+
+### Fixed
+
+- **A long file name broke the delete dialog.** The name sat in an unbroken
+  token, which widened the dialog's single grid track: the body and the footer
+  painted outside the card and the buttons ended up adrift. The track is now
+  `minmax(0, 1fr)` and the title breaks anywhere, so a name of any length wraps
+  inside the dialog. The plain dialog had the same track and got the same fix.
+  (`apps/web/src/components/ui/alert-dialog.tsx`,
+  `apps/web/src/components/ui/dialog.tsx`)
+
 ## v1.0.1 — 2026-10-29
 
 ### Fixed
