@@ -255,7 +255,7 @@ export function AiPanel({
               {entry.kind === "user" && (
                 <div className="ml-auto flex w-fit max-w-[92%] flex-col items-end gap-1.5">
                   {entry.text && (
-                    <div className="rounded-lg rounded-br-[3px] border border-border bg-muted px-2.5 py-1.5 text-[13px] leading-relaxed">
+                    <div className="rounded-lg rounded-br-[3px] border border-border bg-muted px-2.5 py-1.5 text-[13px] leading-relaxed [overflow-wrap:anywhere]">
                       {entry.text}
                     </div>
                   )}
@@ -640,7 +640,7 @@ function AssistantText({ text }: { text: string }) {
             return <hr key={index} className="border-border" />
           default:
             return (
-              <p key={index} className="whitespace-pre-wrap">
+              <p key={index} className="whitespace-pre-wrap [overflow-wrap:anywhere]">
                 {inline(block.tokens)}
               </p>
             )

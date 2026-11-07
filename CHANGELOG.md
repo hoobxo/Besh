@@ -23,6 +23,13 @@ out without reconstructing them from commit messages.
   measured in an unpadded box, which leaves a small gap under the last row.
   (`apps/web/src/views/terminal-view.tsx`)
 
+- **Long paths no longer clip in the assistant panel.** A message carrying one
+  unbroken path — two absolute paths and no spaces between them, as pasted from a
+  terminal — stretched the bubble past its maximum width, and the text was cut at
+  both ends. The message bubble and the reply prose now break inside a token when
+  they have to, so a path wraps and stays readable.
+  (`apps/web/src/views/ai-panel.tsx`)
+
 ## v1.0.1 — 2026-10-29
 
 ### Fixed
