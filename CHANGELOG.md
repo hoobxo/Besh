@@ -8,6 +8,12 @@ out without reconstructing them from commit messages.
 
 ### Fixed
 
+- **Switching tabs rewrapped the terminal.** An inactive tab is hidden, so it
+  measures a fraction of its real size, and it was reporting that size to the
+  server: the shell then rewrapped everything it printed at a dozen columns, so
+  coming back showed a torn first line. A pane only refits and reports its size
+  while it is visible. (pps/web/src/views/terminal-view.tsx)
+
 - **A long file name broke the delete dialog.** The name sat in an unbroken
   token, which widened the dialog's single grid track: the body and the footer
   painted outside the card and the buttons ended up adrift. The track is now

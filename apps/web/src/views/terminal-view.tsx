@@ -582,12 +582,19 @@ export function TerminalView({ sessionId, serverId, ticket, onError, onReconnect
       socket.close()
     })
 
-    refit.current = () => {
+    // An inactive tab is display:none, so it measures zero: fitting there would
+    // squeeze the grid down to a couple of columns, and the reflow that follows
+    // rewraps lines that are already on screen — switching back shows a wrapped,
+    // clipped buffer instead of the terminal you left. Only fit a visible pane.
+    const applyFit = () => {
+      if (element.clientWidth === 0 || element.clientHeight === 0) return
       fit.fit()
       if (isCurrent() && ready.current && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({ type: "resize", cols: terminal.cols, rows: terminal.rows }))
       }
     }
+
+    refit.current = applyFit
 
     const disposable = terminal.onData((input) => {
       if (isCurrent() && ready.current && socket.readyState === WebSocket.OPEN) {
@@ -597,10 +604,7 @@ export function TerminalView({ sessionId, serverId, ticket, onError, onReconnect
 
     const observer = new ResizeObserver(() => {
       if (disposed) return
-      fit.fit()
-      if (isCurrent() && ready.current && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type: "resize", cols: terminal.cols, rows: terminal.rows }))
-      }
+      applyFit()
     })
     observer.observe(element)
 
