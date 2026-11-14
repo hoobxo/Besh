@@ -8,6 +8,12 @@ out without reconstructing them from commit messages.
 
 ### Fixed
 
+- **Switching tabs cleared an unsent AI message.** The assistant panel only
+  existed for the selected tab, so leaving a tab threw the composer draft away.
+  Every open tab now keeps its own panel mounted (hidden while it is not the
+  selected one), so drafts, scroll position and a reply that is still streaming
+  survive a switch. (pps/web/src/views/terminal-view.tsx)
+
 - **Long unbroken text spilled out of dialogs.** File names, paths and host key
   fingerprints are single tokens with no break opportunity, so they painted over
   the card's edge — the delete confirm, the new host key prompt and any dialog

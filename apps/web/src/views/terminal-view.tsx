@@ -713,9 +713,13 @@ export function TerminalView({ sessionId, serverId, ticket, onError, onReconnect
         </div>
       </div>
 
-      {inspector && active &&
+      {/* Portalled for every open tab, not just the active one: unmounting it
+          threw away the half-written message in the composer (and the scroll
+          position) on every tab switch. The inactive copies are hidden, so the
+          one you see is still the only one on screen. */}
+      {inspector &&
         createPortal(
-          <div className="flex min-h-0 flex-1 flex-col">
+          <div className={active ? "flex min-h-0 flex-1 flex-col" : "hidden"} data-inspector={serverId}>
             <MetricsStrip metrics={metrics} open={detailsOpen} onToggle={() => setDetailsOpen((value) => !value)} />
             {detailsOpen && (
               <div className="shrink-0 border-b border-border">
