@@ -4,7 +4,7 @@ Changes worth telling users about, newest first. The repository ships the
 implementation itself; this file exists so the notes for a release can be copied
 out without reconstructing them from commit messages.
 
-## v1.0.2 — unreleased
+## v1.0.2 — 2026-11-15
 
 ### Fixed
 
