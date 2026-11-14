@@ -32,7 +32,9 @@ export function ConfirmDialog({ open, title, description, confirmLabel, onOpenCh
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
+          {/* Callers pass fingerprint pairs on separate lines; without this the
+              breaks collapse into spaces and the two hashes fuse into a wall. */}
+          <AlertDialogDescription className="whitespace-pre-line">{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>{t("dialog.cancel")}</AlertDialogCancel>

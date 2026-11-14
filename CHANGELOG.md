@@ -8,6 +8,15 @@ out without reconstructing them from commit messages.
 
 ### Fixed
 
+- **Long unbroken text spilled out of dialogs.** File names, paths and host key
+  fingerprints are single tokens with no break opportunity, so they painted over
+  the card's edge — the delete confirm, the new host key prompt and any dialog
+  carrying a long path. Dialog copy now breaks mid-token, and the host key
+  prompt keeps its line breaks so the two fingerprints stay separate.
+  (pps/web/src/components/ui/alert-dialog.tsx,
+  pps/web/src/components/ui/dialog.tsx, pps/web/src/index.css,
+  pps/web/src/components/confirm-dialog.tsx)
+
 - **Switching tabs rewrapped the terminal.** An inactive tab is hidden, so it
   measures a fraction of its real size, and it was reporting that size to the
   server: the shell then rewrapped everything it printed at a dozen columns, so

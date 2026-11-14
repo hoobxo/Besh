@@ -139,6 +139,16 @@
   html {
     @apply font-sans;
     }
+  /*
+   * Text the user did not type is often a single unbreakable token: a file name,
+   * an absolute path, a SHA256 fingerprint. In a dialog that token used to paint
+   * straight over the card's edge. Prose inside a dialog may break mid-token;
+   * code blocks and inputs keep their own overflow handling.
+   */
+  [data-slot="dialog-content"] :where(p, h2, h3, h4, label, li),
+  [data-slot="alert-dialog-content"] :where(p, h2, h3, h4, label, li) {
+    overflow-wrap: anywhere;
+    }
 }/* The reference composer is an InputGroup, not two stacked input surfaces. */
 .ai-panel {
   /* inherit the column: only the composer box should read as a separate surface */
