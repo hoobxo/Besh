@@ -12,28 +12,28 @@ out without reconstructing them from commit messages.
   existed for the selected tab, so leaving a tab threw the composer draft away.
   Every open tab now keeps its own panel mounted (hidden while it is not the
   selected one), so drafts, scroll position and a reply that is still streaming
-  survive a switch. (pps/web/src/views/terminal-view.tsx)
-
-- **Long unbroken text spilled out of dialogs.** File names, paths and host key
-  fingerprints are single tokens with no break opportunity, so they painted over
-  the card's edge — the delete confirm, the new host key prompt and any dialog
-  carrying a long path. Dialog copy now breaks mid-token, and the host key
-  prompt keeps its line breaks so the two fingerprints stay separate.
-  (pps/web/src/components/ui/alert-dialog.tsx,
-  pps/web/src/components/ui/dialog.tsx, pps/web/src/index.css,
-  pps/web/src/components/confirm-dialog.tsx)
+  survive a switch. (`apps/web/src/views/terminal-view.tsx`)
 
 - **Switching tabs rewrapped the terminal.** An inactive tab is hidden, so it
   measures a fraction of its real size, and it was reporting that size to the
   server: the shell then rewrapped everything it printed at a dozen columns, so
   coming back showed a torn first line. A pane only refits and reports its size
-  while it is visible. (pps/web/src/views/terminal-view.tsx)
+  while it is visible. (`apps/web/src/views/terminal-view.tsx`)
+
+- **Long unbroken text spilled out of dialogs.** File names, paths and host key
+  fingerprints are single tokens with no break opportunity, so they painted over
+  the card edge — the delete confirm, the new host key prompt and any dialog
+  carrying a long path. Dialog copy now breaks mid-token, and the host key
+  prompt keeps its line breaks so the two fingerprints stay separate.
+  (`apps/web/src/components/ui/alert-dialog.tsx`,
+  `apps/web/src/components/ui/dialog.tsx`, `apps/web/src/index.css`,
+  `apps/web/src/components/confirm-dialog.tsx`)
 
 - **A long file name broke the delete dialog.** The name sat in an unbroken
   token, which widened the dialog's single grid track: the body and the footer
   painted outside the card and the buttons ended up adrift. The track is now
-  `minmax(0, 1fr)` and the title breaks anywhere, so a name of any length wraps
-  inside the dialog. The plain dialog had the same track and got the same fix.
+  `minmax(0, 1fr)` and the title breaks anywhere, so a name of any length
+  wraps inside the dialog.
   (`apps/web/src/components/ui/alert-dialog.tsx`,
   `apps/web/src/components/ui/dialog.tsx`)
 
